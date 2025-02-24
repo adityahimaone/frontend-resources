@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Code2,
   Compass,
+  ExternalLink,
   Layers,
   Notebook,
   Palette,
@@ -34,6 +35,9 @@ import { supabase } from "@/lib/supabase";
 import { CommandSearch } from "@/components/command-search";
 import { LandingPageSearch } from "@/components/landing-page-search";
 import RotatingText from "@/components/animation/RotatingText";
+import Iridescence from "@/components/animation/IridescenceBackground";
+import Aurora from "@/components/animation/AuroraBackground";
+import Squares from "@/components/animation/SquaresBackground";
 
 interface SearchResult {
   id: string;
@@ -42,6 +46,17 @@ interface SearchResult {
   slug?: string;
   url?: string;
   type: "category" | "resource";
+}
+
+interface Resource {
+  id: string;
+  title: string;
+  url: string;
+  description: string;
+  category: {
+    name: string;
+  };
+  created_at: string;
 }
 
 const categories = [
@@ -97,6 +112,11 @@ const categories = [
 export default function Home() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [recentResources, setRecentResources] = useState<Resource[]>([]);
+
+  useEffect(() => {
+    fetchRecentResources();
+  }, []);
 
   useEffect(() => {
     if (!query) {
@@ -139,85 +159,167 @@ export default function Home() {
     return () => clearTimeout(debounce);
   }, [query]);
 
+  const fetchRecentResources = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("resources")
+        .select("*, category:categories(name)")
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      if (!error && data) {
+        setRecentResources(data);
+      }
+    } catch (error) {
+      console.error("Error fetching recent resources:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-linear-to-b from-background to-secondary">
-      <div className="container mx-auto px-4 py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-16"
-        >
-          <div className="flex text-4xl md:text-6xl items-center justify-center mb-6 gap-2">
-            <h1 className="font-bold bg-clip-text text-transparent bg-linear-to-r from-[#38bdf8] to-[#3b82f6]">
-              Frontend
-            </h1>
-            <RotatingText
-              texts={["Resources", "Tools", "Inspiration"]}
-              mainClassName="px-2 sm:px-2 bg-[#3b82f6] md:px-3 font-medium text-white overflow-hidden py-0.5 sm:py-1 md:py-2 justify-center rounded-lg"
-              staggerFrom={"last"}
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "-120%" }}
-              staggerDuration={0.025}
-              splitLevelClassName="overflow-hidden pb-0.5 sm:pb-1 md:pb-1"
-              transition={{ type: "spring", damping: 30, stiffness: 400 }}
-              rotationInterval={2000}
-            />
+      <div className="h-full">
+        {/* <Aurora
+          colorStops={["#38bdf8", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899"]}
+          blend={0.5}
+          amplitude={2.0}
+          speed={0.5}
+        /> */}
+      </div>
+      <div className="">
+        <div id="hero" className="relative">
+          <div className="absolute inset-0 z-0">
+            <Squares speed={0.5} squareSize={40} direction="diagonal" />
           </div>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            A curated collection of the best frontend development tools,
-            libraries, and inspiration sources to supercharge your web
-            development workflow.
-          </p>
-          {/* Search */}
-          {/* Search Component */}
-          <div className="mt-2">
-            <LandingPageSearch />
-          </div>
-        </motion.div>
-        {/* Cetegories */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category, index) => (
+          <div className="relative z-10 container mx-auto px-4 py-28">
             <motion.div
-              key={category.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.5 }}
+              className="text-center mb-16 relative"
             >
-              <Link href={category.href}>
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group">
-                  <CardHeader>
-                    <div
-                      className={`w-12 h-12 rounded-lg ${category.color} flex items-center justify-center mb-4`}
-                    >
-                      <category.icon className="w-6 h-6" />
-                    </div>
-                    <CardTitle className="flex items-center justify-between">
-                      {category.title}
-                      <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
-                    </CardTitle>
-                    <CardDescription>{category.description}</CardDescription>
-                  </CardHeader>
-                </Card>
-              </Link>
+              <div className="flex text-4xl md:text-6xl items-center justify-center mb-6 gap-2">
+                <h1 className="font-bold bg-clip-text text-transparent bg-linear-to-r from-[#38bdf8] to-[#3b82f6]">
+                  Frontend
+                </h1>
+                <RotatingText
+                  texts={["Resources", "Tools", "Inspiration"]}
+                  mainClassName="px-2 sm:px-2 bg-[#3b82f6] md:px-3 font-medium text-white overflow-hidden py-0.5 sm:py-1 md:py-2 justify-center rounded-lg"
+                  staggerFrom={"last"}
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "-120%" }}
+                  staggerDuration={0.025}
+                  splitLevelClassName="overflow-hidden pb-0.5 sm:pb-1 md:pb-1"
+                  transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                  rotationInterval={2000}
+                />
+              </div>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                A curated collection of the best frontend development tools,
+                libraries, and inspiration sources to supercharge your web
+                development workflow.
+              </p>
+              {/* Search Component */}
+              <div className="mt-2">
+                <LandingPageSearch />
+              </div>
             </motion.div>
-          ))}
+          </div>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="mt-16 text-center"
-        >
-          <Button asChild size="lg">
-            <Link href="/categories">
-              Browse All Resources
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Link>
-          </Button>
-        </motion.div>
+        <div className="container mx-auto px-4 py-24">
+          {/* Cetegories */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {categories.map((category, index) => (
+              <motion.div
+                key={category.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <Link href={category.href}>
+                  <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group">
+                    <CardHeader>
+                      <div
+                        className={`w-12 h-12 rounded-lg ${category.color} flex items-center justify-center mb-4`}
+                      >
+                        <category.icon className="w-6 h-6" />
+                      </div>
+                      <CardTitle className="flex items-center justify-between">
+                        {category.title}
+                        <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
+                      </CardTitle>
+                      <CardDescription>{category.description}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="mb-16 text-center"
+          >
+            <Button asChild size="lg">
+              <Link href="/categories">
+                Browse All Resources
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Link>
+            </Button>
+          </motion.div>
+          {/* Recent Add */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="mb-16"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold">Recently Added Resources</h2>
+              <Button asChild variant="outline">
+                <Link href="/resources">
+                  View All Resources
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentResources.map((resource, index) => (
+                <motion.div
+                  key={resource.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                >
+                  <Card className="h-full hover:shadow-lg transition-shadow group">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>{resource.title}</span>
+                        <Link
+                          href={resource.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <ExternalLink className="h-5 w-5" />
+                        </Link>
+                      </CardTitle>
+                      <CardDescription>
+                        <div className="mb-2">
+                          <Badge variant="secondary">
+                            {resource.category.name}
+                          </Badge>
+                        </div>
+                        {resource.description}
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );

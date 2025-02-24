@@ -24,6 +24,8 @@ export function Header() {
   const pathname = usePathname();
   const { toast } = useToast();
 
+  const isHomePage = pathname === "/";
+
   const isActive = (path: string) => {
     if (path === "/") {
       return pathname === path;
@@ -78,14 +80,19 @@ export function Header() {
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="border-b"
+      className={cn(
+        "absolute top-0 left-0 right-0 z-50 ",
+        isHomePage
+          ? "bg-transparent"
+          : "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
+      )}
     >
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 items-center">
             <div
               className={cn(
-                `w-8 h-8 rounded-lg  flex items-center justify-center`,
+                `w-8 h-8 rounded-lg flex items-center justify-center`,
                 isActive("/")
                   ? "text-blue-500 bg-blue-500/10"
                   : "text-purple-500 bg-purple-500/10"
@@ -111,7 +118,7 @@ export function Header() {
                 animationSpeed={3}
                 showBorder={false}
                 className={cn(
-                  "text-xl font-bold custom-class mt-0.5",
+                  "text-base md:text-xl font-bold custom-class",
                   isActive("/") ? "" : "text-muted-foreground "
                 )}
               >
