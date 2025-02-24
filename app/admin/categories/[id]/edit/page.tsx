@@ -1,32 +1,28 @@
-import { Params } from "next/dist/shared/lib/router/utils/route-matcher";
+import { Metadata } from "next";
 import { supabase } from "@/lib/supabase";
 import EditCategoryClient from "./EditCategoryClient";
 import { Suspense } from "react";
 import Loading from "./Loading";
 
-// Define correct page params type for Next.js 13+
-type PageParams = {
-  id: string;
+type Props = {
+  params: { id: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 };
 
-// Update PageProps interface
-interface PageProps {
-  params: PageParams;
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-// Add generateMetadata for better SEO (optional)
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `Edit Category ${params.id}`,
   };
 }
 
-export async function generateStaticParams(): Promise<PageParams[]> {
+export async function generateStaticParams() {
   try {
-    const { data: categories } = await supabase.from("categories").select("id");
+    const { data: categories } = await supabase
+      .from("categories")
+      .select("id")
+      .throwOnError();
 
-    if (!categories) {
+    if (!categories?.length) {
       return [];
     }
 
@@ -39,10 +35,7 @@ export async function generateStaticParams(): Promise<PageParams[]> {
   }
 }
 
-export default async function EditCategoryPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function Page({ params }: Props) {
   if (!params.id) {
     throw new Error("Category ID is required");
   }
