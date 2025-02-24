@@ -1,6 +1,15 @@
-// filepath: /c:/Development/Next/next-frontend-resources/app/admin/categories/[id]/edit/page.tsx
+import { Params } from "next/dist/shared/lib/router/utils/route-matcher";
 import { supabase } from "@/lib/supabase";
 import EditCategoryClient from "./EditCategoryClient";
+import { Suspense } from "react";
+import Loading from "./Loading";
+
+interface PageProps {
+  params: {
+    id: string;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
+}
 
 export async function generateStaticParams() {
   try {
@@ -19,10 +28,13 @@ export async function generateStaticParams() {
   }
 }
 
-export default function EditCategoryPage({
+export default async function EditCategoryPage({
   params,
-}: {
-  params: { id: string };
-}) {
-  return <EditCategoryClient id={params.id} />;
+  searchParams,
+}: PageProps) {
+  return (
+    <Suspense fallback={<Loading />}>
+      <EditCategoryClient id={params.id} />
+    </Suspense>
+  );
 }
