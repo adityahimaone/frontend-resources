@@ -141,6 +141,17 @@ export function Header() {
               >
                 Categories
               </Link>
+              <Link
+                href="/resources"
+                className={cn(
+                  "transition-colors",
+                  isActive("/resources")
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Resources
+              </Link>
               {isAuthenticated && (
                 <Link
                   href="/admin"
