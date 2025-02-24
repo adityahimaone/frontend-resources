@@ -17,6 +17,13 @@ import { supabase } from "@/lib/supabase";
 import { Search } from "./search";
 import { cn } from "@/lib/utils";
 import GradientText from "./animation/GradientText";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "./ui/sheet";
 
 export function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -167,47 +174,96 @@ export function Header() {
               )}
             </nav>
 
-            {isAuthenticated ? (
-              <Button onClick={handleLogout} variant="ghost">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            ) : (
-              <Button asChild variant="ghost">
-                <Link href="/admin/login">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Login
-                </Link>
-              </Button>
-            )}
+            <div className="hidden md:flex items-center gap-4">
+              {isAuthenticated ? (
+                <Button onClick={handleLogout} variant="ghost">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              ) : (
+                <Button asChild variant="ghost">
+                  <Link href="/admin/login">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Login
+                  </Link>
+                </Button>
+              )}
+            </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon">
+            {/* Mobile Navigation */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu className="h-5 w-5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/categories"
-                    className={cn(isActive("/categories") && "font-medium")}
-                  >
-                    Categories
-                  </Link>
-                </DropdownMenuItem>
-                {isAuthenticated && (
-                  <DropdownMenuItem asChild>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Navigation</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-4 mt-4">
+                  <div className="flex justify-end w-full py-3">
+                    <Search />
+                  </div>
+                  <nav className="flex flex-col gap-2">
                     <Link
-                      href="/admin/resources"
-                      className={cn(isActive("/admin") && "font-medium")}
+                      href="/categories"
+                      className={cn(
+                        "px-2 py-1 rounded-md transition-colors",
+                        isActive("/categories")
+                          ? "bg-primary/10 text-foreground font-medium"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
                     >
-                      Admin
+                      Categories
                     </Link>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    <Link
+                      href="/resources"
+                      className={cn(
+                        "px-2 py-1 rounded-md transition-colors",
+                        isActive("/resources")
+                          ? "bg-primary/10 text-foreground font-medium"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Resources
+                    </Link>
+                    {isAuthenticated && (
+                      <Link
+                        href="/admin"
+                        className={cn(
+                          "px-2 py-1 rounded-md transition-colors",
+                          isActive("/admin")
+                            ? "bg-primary/10 text-foreground font-medium"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Dashboard
+                      </Link>
+                    )}
+                  </nav>
+                  <div className="mt-4">
+                    {isAuthenticated ? (
+                      <Button
+                        onClick={handleLogout}
+                        variant="ghost"
+                        className="w-full"
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                      </Button>
+                    ) : (
+                      <Button asChild variant="ghost" className="w-full">
+                        <Link href="/admin/login">
+                          <LogIn className="h-4 w-4 mr-2" />
+                          Login
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

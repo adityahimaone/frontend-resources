@@ -120,7 +120,8 @@ export default function ResourcesPage() {
         .order(sortField, { ascending: sortOrder === "asc" })
         .range(startIndex, startIndex + RESOURCES_PER_PAGE - 1);
 
-      if (selectedCategory) {
+      // Only filter by category if not "all"
+      if (selectedCategory && selectedCategory !== "all") {
         query = query.eq("category_id", selectedCategory);
       }
 
