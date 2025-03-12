@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowDown,
@@ -73,8 +73,20 @@ type SortOrder = "asc" | "desc";
 
 const RESOURCES_PER_PAGE = 9;
 
-export default function ResourcesPage() {
+// Wrapper component that gets search params
+function ResourcesPageContent() {
   const searchParams = useSearchParams();
+  const tagId = searchParams.get("tag");
+
+  return <ResourcesPageImplementation initialTagId={tagId} />;
+}
+
+// Main component implementation
+function ResourcesPageImplementation({
+  initialTagId,
+}: {
+  initialTagId: string | null;
+}) {
   const [resources, setResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -98,17 +110,15 @@ export default function ResourcesPage() {
   }, []);
 
   useEffect(() => {
-    const tagId = searchParams.get("tag");
-
     // Only process if we have tags loaded and there's a tag parameter
-    if (tags.length > 0 && tagId && initialLoad) {
-      const foundTag = tags.find((tag) => tag.id === tagId);
+    if (tags.length > 0 && initialTagId && initialLoad) {
+      const foundTag = tags.find((tag) => tag.id === initialTagId);
       if (foundTag) {
         setSelectedTags([foundTag]);
       }
       setInitialLoad(false);
     }
-  }, [searchParams, tags, initialLoad]);
+  }, [tags, initialTagId, initialLoad]);
 
   useEffect(() => {
     setResources([]);
@@ -495,5 +505,27 @@ export default function ResourcesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ResourcesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-muted rounded w-1/4 mb-4"></div>
+            <div className="h-4 bg-muted rounded w-2/3 mb-8"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+                <div key={i} className="h-40 bg-muted rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <ResourcesPageContent />
+    </Suspense>
   );
 }
