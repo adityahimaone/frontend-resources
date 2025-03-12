@@ -1,4 +1,3 @@
-// filepath: /c:/Development/Next/next-frontend-resources/app/admin/resources/[id]/edit/EditResourceClient.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -26,6 +25,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { MultiSelect, Option } from "@/components/ui/multi-select";
 
 interface Resource {
   id: string;
@@ -40,16 +40,44 @@ interface Category {
   name: string;
 }
 
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface ResourceTag {
+  resource_id: string;
+  tag_id: string;
+  tags: Tag;
+}
+
+const TAG_COLORS = [
+  "bg-blue-500/10 text-blue-500",
+  "bg-green-500/10 text-green-500",
+  "bg-red-500/10 text-red-500",
+  "bg-yellow-500/10 text-yellow-500",
+  "bg-purple-500/10 text-purple-500",
+  "bg-pink-500/10 text-pink-500",
+  "bg-indigo-500/10 text-indigo-500",
+  "bg-orange-500/10 text-orange-500",
+  "bg-teal-500/10 text-teal-500",
+  "bg-cyan-500/10 text-cyan-500",
+];
+
 export default function EditResourceClient({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resource, setResource] = useState<Resource | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Option[]>([]);
+  const [selectedTags, setSelectedTags] = useState<Option[]>([]);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchCategories();
+    fetchTags();
     fetchResource();
   }, []);
 
@@ -74,18 +102,73 @@ export default function EditResourceClient({ id }: { id: string }) {
     }
   }
 
-  async function fetchResource() {
+  async function fetchTags() {
     try {
       const { data, error } = await supabase
+        .from("tags")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+
+      if (data) {
+        setTags(
+          data.map((tag) => ({
+            value: tag.id,
+            label: tag.name,
+            color: tag.color,
+          }))
+        );
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch tags",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function fetchResource() {
+    try {
+      // Fetch resource
+      const { data: resourceData, error: resourceError } = await supabase
         .from("resources")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) throw error;
+      if (resourceError) throw resourceError;
 
-      if (data) {
-        setResource(data);
+      // Fetch resource tags
+      const { data: tagData, error: tagError } = await supabase
+        .from("resource_tags")
+        .select(
+          `
+          resource_id,
+          tag_id,
+          tags (
+            id,
+            name,
+            color
+          )
+        `
+        )
+        .eq("resource_id", id);
+
+      if (tagError) throw tagError;
+
+      if (resourceData) {
+        setResource(resourceData);
+      }
+
+      if (tagData && Array.isArray(tagData)) {
+        const extractedTags = tagData.map((rt: any) => ({
+          value: rt.tags.id,
+          label: rt.tags.name,
+          color: rt.tags.color,
+        }));
+        setSelectedTags(extractedTags);
       }
     } catch (error) {
       toast({
@@ -99,6 +182,43 @@ export default function EditResourceClient({ id }: { id: string }) {
     }
   }
 
+  async function createNewTag(name: string) {
+    try {
+      // Generate a random color from the TAG_COLORS array
+      const randomColor =
+        TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+
+      const { data, error } = await supabase
+        .from("tags")
+        .insert([
+          {
+            name,
+            color: randomColor,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newTag = {
+          value: data.id,
+          label: data.name,
+          color: data.color,
+        };
+        setTags([...tags, newTag]);
+        setSelectedTags([...selectedTags, newTag]);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create tag",
+        variant: "destructive",
+      });
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resource) return;
@@ -106,7 +226,8 @@ export default function EditResourceClient({ id }: { id: string }) {
     setSaving(true);
 
     try {
-      const { error } = await supabase
+      // Update resource
+      const { error: resourceError } = await supabase
         .from("resources")
         .update({
           title: resource.title,
@@ -116,7 +237,27 @@ export default function EditResourceClient({ id }: { id: string }) {
         })
         .eq("id", resource.id);
 
-      if (error) throw error;
+      if (resourceError) throw resourceError;
+
+      // Delete existing tag associations
+      const { error: deleteError } = await supabase
+        .from("resource_tags")
+        .delete()
+        .eq("resource_id", resource.id);
+
+      if (deleteError) throw deleteError;
+
+      // Create new tag associations
+      if (selectedTags.length > 0) {
+        const { error: tagError } = await supabase.from("resource_tags").insert(
+          selectedTags.map((tag) => ({
+            resource_id: resource.id,
+            tag_id: tag.value,
+          }))
+        );
+
+        if (tagError) throw tagError;
+      }
 
       toast({
         title: "Success",
@@ -142,7 +283,7 @@ export default function EditResourceClient({ id }: { id: string }) {
           <div className="h-8 bg-muted rounded w-1/4 mb-4"></div>
           <div className="h-4 bg-muted rounded w-2/3 mb-8"></div>
           <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="h-12 bg-muted rounded"></div>
             ))}
           </div>
@@ -230,6 +371,16 @@ export default function EditResourceClient({ id }: { id: string }) {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tags</Label>
+                <MultiSelect
+                  options={tags}
+                  selected={selectedTags}
+                  onChange={setSelectedTags}
+                  placeholder="Select or create tags..."
+                  createOption={createNewTag}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>

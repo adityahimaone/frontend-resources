@@ -25,15 +25,31 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { MultiSelect, Option } from "@/components/ui/multi-select";
 
 interface Category {
   id: string;
   name: string;
 }
 
+const TAG_COLORS = [
+  "bg-blue-500/10 text-blue-500",
+  "bg-green-500/10 text-green-500",
+  "bg-red-500/10 text-red-500",
+  "bg-yellow-500/10 text-yellow-500",
+  "bg-purple-500/10 text-purple-500",
+  "bg-pink-500/10 text-pink-500",
+  "bg-indigo-500/10 text-indigo-500",
+  "bg-orange-500/10 text-orange-500",
+  "bg-teal-500/10 text-teal-500",
+  "bg-cyan-500/10 text-cyan-500",
+];
+
 export default function NewResourcePage() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Option[]>([]);
+  const [selectedTags, setSelectedTags] = useState<Option[]>([]);
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -43,6 +59,7 @@ export default function NewResourcePage() {
 
   useEffect(() => {
     fetchCategories();
+    fetchTags();
   }, []);
 
   async function fetchCategories() {
@@ -66,21 +83,102 @@ export default function NewResourcePage() {
     }
   }
 
+  async function fetchTags() {
+    try {
+      const { data, error } = await supabase
+        .from("tags")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+
+      if (data) {
+        setTags(
+          data.map((tag) => ({
+            value: tag.id,
+            label: tag.name,
+            color: tag.color,
+          }))
+        );
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch tags",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function createNewTag(name: string) {
+    try {
+      // Generate a random color from the TAG_COLORS array
+      const randomColor =
+        TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+
+      const { data, error } = await supabase
+        .from("tags")
+        .insert([
+          {
+            name,
+            color: randomColor,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newTag = {
+          value: data.id,
+          label: data.name,
+          color: data.color,
+        };
+        setTags([...tags, newTag]);
+        setSelectedTags([...selectedTags, newTag]);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create tag",
+        variant: "destructive",
+      });
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("resources").insert([
-        {
-          title,
-          url,
-          description,
-          category_id: categoryId,
-        },
-      ]);
+      // First insert the resource
+      const { data: resource, error: resourceError } = await supabase
+        .from("resources")
+        .insert([
+          {
+            title,
+            url,
+            description,
+            category_id: categoryId,
+          },
+        ])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (resourceError) throw resourceError;
+
+      // Then create the tag associations
+      if (selectedTags.length > 0 && resource) {
+        const { error: tagError } = await supabase.from("resource_tags").insert(
+          selectedTags.map((tag) => ({
+            resource_id: resource.id,
+            tag_id: tag.value,
+          }))
+        );
+
+        if (tagError) throw tagError;
+      }
 
       toast({
         title: "Success",
@@ -171,6 +269,16 @@ export default function NewResourcePage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tags</Label>
+                <MultiSelect
+                  options={tags}
+                  selected={selectedTags}
+                  onChange={setSelectedTags}
+                  placeholder="Select or create tags..."
+                  createOption={createNewTag}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>

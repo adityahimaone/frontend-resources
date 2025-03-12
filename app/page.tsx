@@ -38,6 +38,7 @@ import RotatingText from "@/components/animation/RotatingText";
 import Iridescence from "@/components/animation/IridescenceBackground";
 import Aurora from "@/components/animation/AuroraBackground";
 import Squares from "@/components/animation/SquaresBackground";
+import { ResourceCard } from "@/components/ui/resources-card";
 
 interface SearchResult {
   id: string;
@@ -56,6 +57,11 @@ interface Resource {
   category: {
     name: string;
   };
+  tags: {
+    id: string;
+    name: string;
+    color: string;
+  }[];
   created_at: string;
 }
 
@@ -163,12 +169,28 @@ export default function Home() {
     try {
       const { data, error } = await supabase
         .from("resources")
-        .select("*, category:categories(name)")
+        .select(
+          `
+          *,
+          category:categories(name),
+          tags:resource_tags(
+            tags(
+              id,
+              name,
+              color
+            )
+          )
+        `
+        )
         .order("created_at", { ascending: false })
         .limit(6);
 
       if (!error && data) {
-        setRecentResources(data);
+        const transformedData = data.map((resource) => ({
+          ...resource,
+          tags: resource.tags.map((t: any) => t.tags),
+        }));
+        setRecentResources(transformedData);
       }
     } catch (error) {
       console.error("Error fetching recent resources:", error);
@@ -292,29 +314,13 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card className="h-full hover:shadow-lg transition-shadow group">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span>{resource.title}</span>
-                        <Link
-                          href={resource.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-muted-foreground hover:text-primary"
-                        >
-                          <ExternalLink className="h-5 w-5" />
-                        </Link>
-                      </CardTitle>
-                      <CardDescription>
-                        <div className="mb-2">
-                          <Badge variant="secondary">
-                            {resource.category.name}
-                          </Badge>
-                        </div>
-                        {resource.description}
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
+                  <ResourceCard
+                    title={resource.title}
+                    description={resource.description}
+                    link={resource.url}
+                    isExternal
+                    tags={resource.tags}
+                  />
                 </motion.div>
               ))}
             </div>

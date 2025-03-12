@@ -6,18 +6,14 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
+  Check,
   ExternalLink,
   Search,
+  Tag,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -28,6 +24,21 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
+import { ResourceCard } from "@/components/ui/resources-card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { TagFilter } from "@/components/ui/tag-filter";
 
 interface Resource {
   id: string;
@@ -35,15 +46,25 @@ interface Resource {
   url: string;
   description: string;
   category: {
-    id: string;
     name: string;
   };
+  tags: {
+    id: string;
+    name: string;
+    color: string;
+  }[];
   created_at: string;
 }
 
 interface Category {
   id: string;
   name: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
 }
 
 type SortField = "title" | "created_at";
@@ -54,7 +75,11 @@ const RESOURCES_PER_PAGE = 9;
 export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  const [tagSearchValue, setTagSearchValue] = useState("");
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -66,13 +91,14 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     fetchCategories();
+    fetchTags();
   }, []);
 
   useEffect(() => {
     setResources([]);
     setHasMore(true);
     fetchResources(0);
-  }, [selectedCategory, sortField, sortOrder, searchQuery]);
+  }, [selectedCategory, selectedTags, sortField, sortOrder, searchQuery]);
 
   useEffect(() => {
     if (loadingMore || !hasMore) return;
@@ -112,35 +138,87 @@ export default function ResourcesPage() {
     }
   }
 
+  async function fetchTags() {
+    try {
+      const { data, error } = await supabase
+        .from("tags")
+        .select("id, name, color")
+        .order("name");
+
+      if (!error && data) {
+        setTags(data);
+      }
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  }
+
   async function fetchResources(startIndex: number) {
     try {
       let query = supabase
         .from("resources")
-        .select("*, category:categories(id, name)")
+        .select(
+          `
+          *,
+          category:categories(id, name),
+          resource_tags(
+            tag_id,
+            tags(id, name, color)
+          )
+        `
+        )
         .order(sortField, { ascending: sortOrder === "asc" })
         .range(startIndex, startIndex + RESOURCES_PER_PAGE - 1);
 
-      // Only filter by category if not "all"
+      // Filter by category
       if (selectedCategory && selectedCategory !== "all") {
         query = query.eq("category_id", selectedCategory);
       }
 
+      // Search query filter
       if (searchQuery) {
         query = query.or(
           `title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`
         );
       }
 
-      const { data, error } = await query;
+      // Get initial data without tag filtering
+      const { data: initialData, error } = await query;
 
-      if (!error) {
-        if (startIndex === 0) {
-          setResources(data || []);
-        } else {
-          setResources((prev) => [...prev, ...(data || [])]);
-        }
-        setHasMore((data || []).length === RESOURCES_PER_PAGE);
+      if (error) throw error;
+
+      // Filter by tags if any are selected
+      let filteredData = initialData;
+      if (selectedTags.length > 0) {
+        filteredData = initialData?.filter((resource) => {
+          const resourceTagIds =
+            resource.resource_tags?.map(
+              (rt: { tag_id: string }) => rt.tag_id
+            ) || [];
+
+          // Only keep resources that have ALL selected tags
+          return selectedTags.every((tag) => resourceTagIds.includes(tag.id));
+        });
       }
+
+      // Transform the data to match the Resource interface
+      const transformedData =
+        filteredData?.map((resource) => {
+          return {
+            ...resource,
+            tags: (resource.resource_tags?.map(
+              (rt: { tags: { id: string; name: string; color: string } }) =>
+                rt.tags
+            ) || []) as { id: string; name: string; color: string }[],
+          } as Resource;
+        }) || [];
+
+      if (startIndex === 0) {
+        setResources(transformedData);
+      } else {
+        setResources((prev) => [...prev, ...transformedData]);
+      }
+      setHasMore(filteredData.length === RESOURCES_PER_PAGE);
     } catch (error) {
       console.error("Error fetching resources:", error);
     } finally {
@@ -154,6 +232,17 @@ export default function ResourcesPage() {
     setLoadingMore(true);
     await fetchResources(resources.length);
   }
+
+  const handleTagSelection = (tag: Tag) => {
+    if (!selectedTags.some((t) => t.id === tag.id)) {
+      setSelectedTags([...selectedTags, tag]);
+    }
+    setTagSearchValue("");
+  };
+
+  const handleTagRemoval = (tagId: string) => {
+    setSelectedTags(selectedTags.filter((tag) => tag.id !== tagId));
+  };
 
   if (loading) {
     return (
@@ -192,55 +281,113 @@ export default function ResourcesPage() {
           </p>
         </motion.div>
       </div>
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search resources..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+
+      {/* Filters Section */}
+      <div className="mb-6 space-y-4 lg:space-y-0">
+        {/* Combined Search and Filter Controls */}
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+          {/* Search Box - Takes more space on desktop */}
+          <div className="relative lg:flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search resources..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-full"
+            />
+          </div>
+
+          {/* Filters Container */}
+          <div className="flex flex-row gap-2 lg:gap-3 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
+            {/* Category Filter */}
+            <Select
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+            >
+              <SelectTrigger className="w-[140px] min-w-[140px] lg:w-[180px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Tag Filter */}
+            <TagFilter
+              tags={tags}
+              selectedTags={selectedTags}
+              onChange={setSelectedTags}
+            />
+
+            {/* Sort Controls */}
+            <Select
+              value={sortField}
+              onValueChange={(value) => setSortField(value as SortField)}
+            >
+              <SelectTrigger className="w-[140px] min-w-[140px] lg:w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="title">Title</SelectItem>
+                <SelectItem value="created_at">Date Added</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort Direction */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="min-w-[40px]"
+              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+            >
+              {sortOrder === "asc" ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : (
+                <ArrowDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={sortField}
-            onValueChange={(value) => setSortField(value as SortField)}
+
+        {/* Selected Tags - Keep this section as it is */}
+        {selectedTags.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-wrap gap-2 mt-4"
           >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="title">Title</SelectItem>
-              <SelectItem value="created_at">Date Added</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-          >
-            {sortOrder === "asc" ? (
-              <ArrowUp className="h-4 w-4" />
-            ) : (
-              <ArrowDown className="h-4 w-4" />
+            {selectedTags.map((tag) => (
+              <Badge
+                key={tag.id}
+                className={cn("flex items-center gap-1 pl-3 pr-2", tag.color)}
+              >
+                {tag.name}
+                <X
+                  className="h-3 w-3 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => handleTagRemoval(tag.id)}
+                />
+              </Badge>
+            ))}
+
+            {selectedTags.length > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setSelectedTags([])}
+              >
+                Clear all
+              </Button>
             )}
-          </Button>
-        </div>
+          </motion.div>
+        )}
       </div>
+      {/* Resources Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {resources.map((resource, index) => (
           <motion.div
@@ -249,30 +396,17 @@ export default function ResourcesPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: Math.min(index * 0.1, 1) }}
           >
-            <Card className="h-full hover:shadow-lg transition-shadow group">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>{resource.title}</span>
-                  <Link
-                    href={resource.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    <ExternalLink className="h-5 w-5" />
-                  </Link>
-                </CardTitle>
-                <CardDescription>
-                  <div className="mb-2">
-                    <Badge variant="secondary">{resource.category.name}</Badge>
-                  </div>
-                  {resource.description}
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <ResourceCard
+              title={resource.title}
+              description={resource.description}
+              link={resource.url}
+              isExternal
+              tags={resource.tags}
+            />
           </motion.div>
         ))}
       </div>
+      {/* Empty State */}
       {resources.length === 0 && !loading && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -282,8 +416,24 @@ export default function ResourcesPage() {
           <p className="text-muted-foreground text-lg">
             No resources found matching your search.
           </p>
+          {(selectedTags.length > 0 ||
+            selectedCategory !== "all" ||
+            searchQuery) && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedTags([]);
+                setSelectedCategory("all");
+                setSearchQuery("");
+              }}
+              className="mt-4"
+            >
+              Clear all filters
+            </Button>
+          )}
         </motion.div>
       )}
+      {/* Loading More Indicator */}
       {hasMore && (
         <div
           ref={loadMoreRef}

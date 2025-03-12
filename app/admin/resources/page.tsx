@@ -38,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
@@ -46,11 +47,16 @@ interface Resource {
   title: string;
   url: string;
   description: string;
-  category_id: string;
-  created_at: string;
   category: {
+    id: string;
     name: string;
   };
+  tags: {
+    id: string;
+    name: string;
+    color: string;
+  }[];
+  created_at: string;
 }
 
 interface Category {
@@ -65,10 +71,10 @@ export default function AdminResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState<SortField>("title");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const router = useRouter();
   const { toast } = useToast();
 
@@ -102,7 +108,19 @@ export default function AdminResourcesPage() {
     try {
       let query = supabase
         .from("resources")
-        .select("*, category:categories(name)")
+        .select(
+          `
+          *,
+          category:categories(id, name),
+          tags:resource_tags(
+            tags(
+              id,
+              name,
+              color
+            )
+          )
+        `
+        )
         .order(sortField, { ascending: sortOrder === "asc" });
 
       if (selectedCategory && selectedCategory !== "all") {
@@ -114,7 +132,12 @@ export default function AdminResourcesPage() {
       if (error) throw error;
 
       if (data) {
-        setResources(data);
+        // Transform the nested tags data structure
+        const transformedData = data.map((resource) => ({
+          ...resource,
+          tags: resource.tags.map((t: any) => t.tags),
+        }));
+        setResources(transformedData);
       }
     } catch (error) {
       toast({
@@ -264,6 +287,7 @@ export default function AdminResourcesPage() {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Tags</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>URL</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
@@ -276,6 +300,15 @@ export default function AdminResourcesPage() {
                     {resource.title}
                   </TableCell>
                   <TableCell>{resource.category?.name}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {resource.tags.map((tag) => (
+                        <Badge key={tag.id} className={tag.color}>
+                          {tag.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
                   <TableCell>{resource.description}</TableCell>
                   <TableCell>
                     <Link

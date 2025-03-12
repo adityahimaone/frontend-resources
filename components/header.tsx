@@ -24,6 +24,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "./ui/sheet";
+import { CommandSearch } from "./command-search";
 
 export function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -137,6 +138,7 @@ export function Header() {
           <div className="flex items-center gap-4 relative">
             <nav className="hidden md:flex items-center gap-6">
               <Search />
+              {/* <CommandSearch /> */}
               <Link
                 href="/categories"
                 className={cn(

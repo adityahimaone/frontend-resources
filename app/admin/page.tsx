@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowLeft, FolderKanban, Link2 } from "lucide-react";
+import { ArrowLeft, FolderKanban, Link2, Tag } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,13 @@ const adminSections = [
     icon: Link2,
     href: "/admin/resources",
     color: "bg-green-500/10 text-green-500",
+  },
+  {
+    title: "Tags",
+    description: "Manage resource tags and their appearance",
+    icon: Tag,
+    href: "/admin/tags",
+    color: "bg-purple-500/10 text-purple-500",
   },
 ];
 
@@ -50,7 +57,7 @@ export default function AdminDashboardPage() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {adminSections.map((section, index) => (
           <motion.div
             key={section.title}
@@ -66,9 +73,7 @@ export default function AdminDashboardPage() {
                   >
                     <section.icon className="w-6 h-6" />
                   </div>
-                  <CardTitle className="flex items-center justify-between">
-                    {section.title}
-                  </CardTitle>
+                  <CardTitle>{section.title}</CardTitle>
                   <CardDescription>{section.description}</CardDescription>
                 </CardHeader>
               </Card>
@@ -90,6 +95,7 @@ export default function AdminDashboardPage() {
           <li>
             Write clear, concise descriptions for better user understanding
           </li>
+          <li>Use tags to make resources more discoverable</li>
         </ul>
       </motion.div>
     </div>

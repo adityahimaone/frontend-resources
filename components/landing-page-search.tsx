@@ -1,7 +1,6 @@
-// components/search/SimpleSearch.tsx
 "use client";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { Search } from "lucide-react";
+import { Search, Folder, Tag, ExternalLink, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
@@ -13,7 +12,8 @@ interface SearchResult {
   title?: string;
   slug?: string;
   url?: string;
-  type: "category" | "resource";
+  color?: string;
+  type: "category" | "resource" | "tag";
 }
 
 export function LandingPageSearch() {
@@ -22,6 +22,7 @@ export function LandingPageSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const searchData = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -33,38 +34,45 @@ export function LandingPageSearch() {
     setIsLoading(true);
 
     try {
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from("categories")
-        .select("id, name, slug")
-        .ilike("name", `%${searchQuery}%`)
-        .limit(5);
+      const [categoriesResponse, resourcesResponse, tagsResponse] =
+        await Promise.all([
+          supabase
+            .from("categories")
+            .select("id, name, slug")
+            .ilike("name", `%${searchQuery}%`)
+            .limit(5),
+          supabase
+            .from("resources")
+            .select("id, title, url")
+            .ilike("title", `%${searchQuery}%`)
+            .limit(5),
+          supabase
+            .from("tags")
+            .select("id, name, color")
+            .ilike("name", `%${searchQuery}%`)
+            .limit(5),
+        ]);
 
-      const { data: resourcesData, error: resourcesError } = await supabase
-        .from("resources")
-        .select("id, title, url")
-        .ilike("title", `%${searchQuery}%`)
-        .limit(5);
+      if (categoriesResponse.error) throw categoriesResponse.error;
+      if (resourcesResponse.error) throw resourcesResponse.error;
+      if (tagsResponse.error) throw tagsResponse.error;
 
-      if (categoriesError) throw categoriesError;
-      if (resourcesError) throw resourcesError;
+      const categories = (categoriesResponse.data || []).map((category) => ({
+        ...category,
+        type: "category" as const,
+      }));
 
-      const categories =
-        categoriesData?.map((category) => ({
-          id: category.id,
-          name: category.name,
-          slug: category.slug,
-          type: "category" as const,
-        })) || [];
+      const resources = (resourcesResponse.data || []).map((resource) => ({
+        ...resource,
+        type: "resource" as const,
+      }));
 
-      const resources =
-        resourcesData?.map((resource) => ({
-          id: resource.id,
-          title: resource.title,
-          url: resource.url,
-          type: "resource" as const,
-        })) || [];
+      const tags = (tagsResponse.data || []).map((tag) => ({
+        ...tag,
+        type: "tag" as const,
+      }));
 
-      setResults([...categories, ...resources]);
+      setResults([...categories, ...resources, ...tags]);
     } catch (error) {
       console.error("Error searching:", error);
       setResults([]);
@@ -83,7 +91,6 @@ export function LandingPageSearch() {
     return () => clearTimeout(debounceTimeout);
   }, [query, searchData]);
 
-  // Handle click outside to close
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -108,6 +115,7 @@ export function LandingPageSearch() {
         <div className="relative">
           <div className="relative">
             <input
+              ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => {
@@ -115,77 +123,165 @@ export function LandingPageSearch() {
                 setIsOpen(true);
               }}
               onFocus={() => setIsOpen(true)}
-              placeholder="Search resources and categories..."
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search resources, categories, and tags..."
+              className="w-full px-5 py-3.5 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 
+              shadow-sm bg-white dark:bg-gray-800 dark:text-gray-100 text-gray-800 pl-12"
             />
-            <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
           </div>
 
           <AnimatePresence>
             {isOpen && (query || isLoading) && (
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="absolute w-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-[400px] overflow-y-auto z-50"
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                className="absolute w-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 
+                overflow-hidden z-50 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95"
               >
                 {isLoading ? (
-                  <div className="p-4 text-center text-gray-500">
-                    Searching...
+                  <div className="p-6 flex items-center justify-center">
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-gray-500 dark:text-gray-400" />
+                      <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
+                        Searching...
+                      </span>
+                    </div>
                   </div>
                 ) : results.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">
-                    No results found
+                  <div className="p-6 text-center">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 mb-3">
+                      <Search className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No results found for &quot;
+                      <span className="font-medium">{query}</span>&quot;
+                    </p>
                   </div>
                 ) : (
-                  <div className="p-2">
+                  <div className="overflow-hidden">
                     {/* Categories */}
                     {results.some((r) => r.type === "category") && (
-                      <div className="mb-4">
-                        <div className="px-2 py-1 text-sm font-semibold text-gray-500">
-                          Categories
+                      <div className="border-b border-gray-100 dark:border-gray-700 relative">
+                        <div className="flex items-center px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/80">
+                          <Folder className="h-3.5 w-3.5 mr-1.5" />
+                          <span>CATEGORIES</span>
                         </div>
-                        {results
-                          .filter((r) => r.type === "category")
-                          .map((result) => (
-                            <Link
-                              key={result.id}
-                              href={`/categories/${result.slug}`}
-                              className="block px-4 py-2 hover:bg-gray-100 rounded-md"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span>{result.name}</span>
-                                <Badge variant="secondary">Category</Badge>
-                              </div>
-                            </Link>
-                          ))}
+                        <div>
+                          {results
+                            .filter((r) => r.type === "category")
+                            .map((result) => (
+                              <Link
+                                key={result.id}
+                                href={`/categories/${result.slug}`}
+                                onClick={() => setIsOpen(false)}
+                              >
+                                <motion.div
+                                  whileHover={{
+                                    backgroundColor: "rgba(0,0,0,0.03)",
+                                  }}
+                                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 flex items-center justify-between group"
+                                >
+                                  <div className="flex items-center">
+                                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                                      {result.name}
+                                    </span>
+                                  </div>
+                                  <Badge className="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
+                                    Category
+                                  </Badge>
+                                </motion.div>
+                              </Link>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tags */}
+                    {results.some((r) => r.type === "tag") && (
+                      <div className="border-b border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/80">
+                          <Tag className="h-3.5 w-3.5 mr-1.5" />
+                          <span>TAGS</span>
+                        </div>
+                        <div>
+                          {results
+                            .filter((r) => r.type === "tag")
+                            .map((result) => (
+                              <Link
+                                key={result.id}
+                                href={`/resources?tag=${result.id}`}
+                                onClick={() => setIsOpen(false)}
+                              >
+                                <motion.div
+                                  whileHover={{
+                                    backgroundColor: "rgba(0,0,0,0.03)",
+                                  }}
+                                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 flex items-center justify-between group"
+                                >
+                                  <div className="flex items-center">
+                                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                                      {result.name}
+                                    </span>
+                                  </div>
+                                  <Badge
+                                    className={
+                                      result.color ||
+                                      "bg-purple-100 text-purple-600"
+                                    }
+                                  >
+                                    {result.name}
+                                  </Badge>
+                                </motion.div>
+                              </Link>
+                            ))}
+                        </div>
                       </div>
                     )}
 
                     {/* Resources */}
                     {results.some((r) => r.type === "resource") && (
                       <div>
-                        <div className="px-2 py-1 text-sm font-semibold text-gray-500">
-                          Resources
+                        <div className="flex items-center px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/80">
+                          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                          <span>RESOURCES</span>
                         </div>
-                        {results
-                          .filter((r) => r.type === "resource")
-                          .map((result) => (
-                            <a
-                              key={result.id}
-                              href={result.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block px-4 py-2 hover:bg-gray-100 rounded-md"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span>{result.title}</span>
-                                <Badge variant="outline">Resource</Badge>
-                              </div>
-                            </a>
-                          ))}
+                        <div>
+                          {results
+                            .filter((r) => r.type === "resource")
+                            .map((result) => (
+                              <a
+                                key={result.id}
+                                href={result.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => setIsOpen(false)}
+                              >
+                                <motion.div
+                                  whileHover={{
+                                    backgroundColor: "rgba(0,0,0,0.03)",
+                                  }}
+                                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 flex items-center justify-between group"
+                                >
+                                  <div className="flex items-center">
+                                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                                      {result.title}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs font-medium"
+                                    >
+                                      Resource
+                                    </Badge>
+                                    <ExternalLink className="ml-1.5 h-3.5 w-3.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                </motion.div>
+                              </a>
+                            ))}
+                        </div>
                       </div>
                     )}
                   </div>

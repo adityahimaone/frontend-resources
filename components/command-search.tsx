@@ -1,4 +1,3 @@
-// components/search/command-search.tsx
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { Search } from "lucide-react";
@@ -22,7 +21,8 @@ interface SearchResult {
   title?: string;
   slug?: string;
   url?: string;
-  type: "category" | "resource";
+  color?: string;
+  type: "category" | "resource" | "tag";
 }
 
 export function CommandSearch() {
@@ -31,7 +31,6 @@ export function CommandSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Memoize the search function to prevent unnecessary recreations
   const searchData = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([]);
@@ -42,42 +41,45 @@ export function CommandSearch() {
     setIsLoading(true);
 
     try {
-      // Add error handling untuk responses
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from("categories")
-        .select("id, name, slug")
-        .ilike("name", `%${searchQuery}%`)
-        .limit(5);
+      const [categoriesResponse, resourcesResponse, tagsResponse] =
+        await Promise.all([
+          supabase
+            .from("categories")
+            .select("id, name, slug")
+            .ilike("name", `%${searchQuery}%`)
+            .limit(5),
+          supabase
+            .from("resources")
+            .select("id, title, url")
+            .ilike("title", `%${searchQuery}%`)
+            .limit(5),
+          supabase
+            .from("tags")
+            .select("id, name, color")
+            .ilike("name", `%${searchQuery}%`)
+            .limit(5),
+        ]);
 
-      const { data: resourcesData, error: resourcesError } = await supabase
-        .from("resources")
-        .select("id, title, url")
-        .ilike("title", `%${searchQuery}%`)
-        .limit(5);
+      if (categoriesResponse.error) throw categoriesResponse.error;
+      if (resourcesResponse.error) throw resourcesResponse.error;
+      if (tagsResponse.error) throw tagsResponse.error;
 
-      if (categoriesError) throw categoriesError;
-      if (resourcesError) throw resourcesError;
+      const categories = (categoriesResponse.data || []).map((category) => ({
+        ...category,
+        type: "category" as const,
+      }));
 
-      // Make sure data exists before mapping
-      const categories = categoriesData
-        ? categoriesData.map((category) => ({
-            id: category.id,
-            name: category.name,
-            slug: category.slug,
-            type: "category" as const,
-          }))
-        : [];
+      const resources = (resourcesResponse.data || []).map((resource) => ({
+        ...resource,
+        type: "resource" as const,
+      }));
 
-      const resources = resourcesData
-        ? resourcesData.map((resource) => ({
-            id: resource.id,
-            title: resource.title,
-            url: resource.url,
-            type: "resource" as const,
-          }))
-        : [];
+      const tags = (tagsResponse.data || []).map((tag) => ({
+        ...tag,
+        type: "tag" as const,
+      }));
 
-      setResults([...categories, ...resources]);
+      setResults([...categories, ...resources, ...tags]);
     } catch (error) {
       console.error("Error searching:", error);
       setResults([]);
@@ -86,7 +88,6 @@ export function CommandSearch() {
     }
   }, []);
 
-  // Use useEffect with cleanup to handle debouncing
   useEffect(() => {
     const debounceTimeout = setTimeout(() => {
       if (isOpen) {
@@ -124,7 +125,7 @@ export function CommandSearch() {
       >
         <Command className="rounded-lg border shadow-md">
           <CommandInput
-            placeholder="Search resources and categories..."
+            placeholder="Search resources, categories, and tags..."
             value={query}
             onValueChange={handleInputChange}
             onFocus={handleFocus}
@@ -146,15 +147,14 @@ export function CommandSearch() {
                     <div className="px-4 py-2 text-sm">
                       {results.some((r) => r.type === "category") && (
                         <div className="flex flex-col gap-1">
+                          <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                            Categories
+                          </div>
                           {results
                             .filter((r) => r.type === "category")
                             .map((result) => (
                               <div
                                 key={result.id}
-                                onSelect={() => {
-                                  setIsOpen(false);
-                                  setQuery("");
-                                }}
                                 className="flex w-full hover:bg-slate-100 px-2 py-1 rounded-lg"
                               >
                                 <Link
@@ -168,32 +168,63 @@ export function CommandSearch() {
                             ))}
                         </div>
                       )}
-                      <div className="border-t border-slate-200 my-2" />
-                      {results.some((r) => r.type === "resource") && (
-                        <div className="flex flex-col gap-1">
-                          {results
-                            .filter((r) => r.type === "resource")
-                            .map((result) => (
-                              <div
-                                key={result.id}
-                                onSelect={() => {
-                                  setIsOpen(false);
-                                  setQuery("");
-                                }}
-                                className="flex w-full hover:bg-slate-100 px-2 py-1 rounded-lg"
-                              >
-                                <a
-                                  href={result.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-between w-full"
+
+                      {results.some((r) => r.type === "tag") && (
+                        <>
+                          <div className="border-t border-slate-200 my-2" />
+                          <div className="flex flex-col gap-1">
+                            <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                              Tags
+                            </div>
+                            {results
+                              .filter((r) => r.type === "tag")
+                              .map((result) => (
+                                <div
+                                  key={result.id}
+                                  className="flex w-full hover:bg-slate-100 px-2 py-1 rounded-lg"
                                 >
-                                  <span>{result.title}</span>
-                                  <Badge variant="outline">Resource</Badge>
-                                </a>
-                              </div>
-                            ))}
-                        </div>
+                                  <Link
+                                    href={`/resources?tag=${result.id}`}
+                                    className="flex items-center justify-between w-full"
+                                  >
+                                    <span>{result.name}</span>
+                                    <Badge className={result.color}>
+                                      {result.name}
+                                    </Badge>
+                                  </Link>
+                                </div>
+                              ))}
+                          </div>
+                        </>
+                      )}
+
+                      {results.some((r) => r.type === "resource") && (
+                        <>
+                          <div className="border-t border-slate-200 my-2" />
+                          <div className="flex flex-col gap-1">
+                            <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                              Resources
+                            </div>
+                            {results
+                              .filter((r) => r.type === "resource")
+                              .map((result) => (
+                                <div
+                                  key={result.id}
+                                  className="flex w-full hover:bg-slate-100 px-2 py-1 rounded-lg"
+                                >
+                                  <a
+                                    href={result.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-between w-full"
+                                  >
+                                    <span>{result.title}</span>
+                                    <Badge variant="outline">Resource</Badge>
+                                  </a>
+                                </div>
+                              ))}
+                          </div>
+                        </>
                       )}
                     </div>
                   )}
