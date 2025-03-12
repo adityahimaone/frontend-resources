@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { TagFilter } from "@/components/ui/tag-filter";
+import { useSearchParams } from "next/navigation";
 
 interface Resource {
   id: string;
@@ -73,6 +74,7 @@ type SortOrder = "asc" | "desc";
 const RESOURCES_PER_PAGE = 9;
 
 export default function ResourcesPage() {
+  const searchParams = useSearchParams();
   const [resources, setResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -88,11 +90,25 @@ export default function ResourcesPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
     fetchCategories();
     fetchTags();
   }, []);
+
+  useEffect(() => {
+    const tagId = searchParams.get("tag");
+
+    // Only process if we have tags loaded and there's a tag parameter
+    if (tags.length > 0 && tagId && initialLoad) {
+      const foundTag = tags.find((tag) => tag.id === tagId);
+      if (foundTag) {
+        setSelectedTags([foundTag]);
+      }
+      setInitialLoad(false);
+    }
+  }, [searchParams, tags, initialLoad]);
 
   useEffect(() => {
     setResources([]);
@@ -233,15 +249,45 @@ export default function ResourcesPage() {
     await fetchResources(resources.length);
   }
 
+  const updateResourceUrl = (tag: Tag | null = null) => {
+    // Create a URL object with the current location
+    const url = new URL(window.location.href);
+
+    if (tag) {
+      // Add or update the tag parameter
+      url.searchParams.set("tag", tag.id);
+    } else {
+      // If no tag provided, remove the parameter
+      url.searchParams.delete("tag");
+    }
+
+    // Update browser history without refreshing the page
+    window.history.pushState({}, "", url.toString());
+  };
+
   const handleTagSelection = (tag: Tag) => {
     if (!selectedTags.some((t) => t.id === tag.id)) {
-      setSelectedTags([...selectedTags, tag]);
+      const newSelectedTags = [...selectedTags, tag];
+      setSelectedTags(newSelectedTags);
+      updateResourceUrl(tag); // Update URL when selecting tag
     }
     setTagSearchValue("");
   };
 
   const handleTagRemoval = (tagId: string) => {
-    setSelectedTags(selectedTags.filter((tag) => tag.id !== tagId));
+    const newSelectedTags = selectedTags.filter((tag) => tag.id !== tagId);
+    setSelectedTags(newSelectedTags);
+
+    if (newSelectedTags.length > 0) {
+      updateResourceUrl(newSelectedTags[0]); // Keep the URL updated with first tag
+    } else {
+      updateResourceUrl(); // Clear tag from URL if no tags selected
+    }
+  };
+
+  const clearAllTags = () => {
+    setSelectedTags([]);
+    updateResourceUrl(); // Clear tag from URL
   };
 
   if (loading) {
@@ -379,7 +425,7 @@ export default function ResourcesPage() {
                 variant="ghost"
                 size="sm"
                 className="h-7 text-xs"
-                onClick={() => setSelectedTags([])}
+                onClick={clearAllTags}
               >
                 Clear all
               </Button>
@@ -419,15 +465,7 @@ export default function ResourcesPage() {
           {(selectedTags.length > 0 ||
             selectedCategory !== "all" ||
             searchQuery) && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedTags([]);
-                setSelectedCategory("all");
-                setSearchQuery("");
-              }}
-              className="mt-4"
-            >
+            <Button variant="outline" onClick={clearAllTags} className="mt-4">
               Clear all filters
             </Button>
           )}
