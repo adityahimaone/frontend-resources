@@ -142,9 +142,9 @@ export function ResourceCard({
               {title}
               {/* Visibility Icon */}
               {isPublic ? (
-                <Globe className="w-4 h-4 text-green-600" title="Public" />
+                <Globe className="w-4 h-4 text-green-600" aria-label="Public" />
               ) : (
-                <Lock className="w-4 h-4 text-amber-600" title="Private" />
+                <Lock className="w-4 h-4 text-amber-600" aria-label="Private" />
               )}
             </span>
             {link &&
