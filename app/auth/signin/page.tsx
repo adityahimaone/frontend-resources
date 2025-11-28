@@ -47,13 +47,13 @@ function SignInForm() {
   };
 
   return (
-    <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
-      <h1 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+    <div className="w-full max-w-md bg-white border-2 border-black shadow-neo p-8">
+      <h1 className="text-3xl font-black uppercase tracking-tighter text-center mb-6 text-black">
         Sign In
       </h1>
 
       {(error || errorParam) && (
-        <div className="mb-4 p-3 text-sm text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-md">
+        <div className="mb-4 p-3 text-sm font-bold text-black bg-red-400 border-2 border-black">
           {error || "Authentication failed. Please try again."}
         </div>
       )}
@@ -62,7 +62,7 @@ function SignInForm() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-bold text-black mb-2 uppercase"
           >
             Email
           </label>
@@ -73,14 +73,14 @@ function SignInForm() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="admin@example.com"
             required
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            className="w-full px-4 py-3 border-2 border-black bg-white text-black font-medium shadow-neo-sm focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] transition-all focus:outline-none"
           />
         </div>
 
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-bold text-black mb-2 uppercase"
           >
             Password
           </label>
@@ -91,33 +91,33 @@ function SignInForm() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            className="w-full px-4 py-3 border-2 border-black bg-white text-black font-medium shadow-neo-sm focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] transition-all focus:outline-none"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-md transition-colors"
+          className="w-full py-3 px-4 bg-green-400 hover:bg-green-500 disabled:bg-gray-300 text-black font-black uppercase border-2 border-black shadow-neo hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="mt-6 text-center text-sm font-bold text-black">
         Don&apos;t have an account?{" "}
         <Link
           href="/auth/signup"
-          className="text-blue-600 hover:text-blue-500 dark:text-blue-400"
+          className="text-black underline decoration-2 decoration-pink-400 hover:bg-pink-400 px-1 transition-all"
         >
           Sign up
         </Link>
       </p>
 
-      <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="mt-4 text-center text-sm font-bold text-black">
         <Link
           href="/"
-          className="text-blue-600 hover:text-blue-500 dark:text-blue-400"
+          className="text-black underline decoration-2 decoration-blue-400 hover:bg-blue-400 px-1 transition-all"
         >
           ← Back to Home
         </Link>
@@ -128,8 +128,13 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
-      <Suspense fallback={<div>Loading...</div>}>
+    <div className="min-h-screen flex items-center justify-center bg-yellow-300 px-4 relative overflow-hidden">
+      <div className="absolute top-10 left-10 w-20 h-20 bg-pink-400 border-2 border-black shadow-neo rotate-12 hidden md:block"></div>
+      <div className="absolute bottom-20 right-20 w-16 h-16 bg-blue-400 border-2 border-black shadow-neo rounded-full hidden md:block"></div>
+      <div className="absolute top-1/3 right-10 w-12 h-12 bg-green-400 border-2 border-black shadow-neo hidden md:block"></div>
+      <Suspense
+        fallback={<div className="font-black text-black">Loading...</div>}
+      >
         <SignInForm />
       </Suspense>
     </div>

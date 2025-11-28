@@ -72,14 +72,17 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
-        <h1 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+    <div className="min-h-screen flex items-center justify-center bg-pink-300 px-4 relative overflow-hidden">
+      <div className="absolute top-10 right-10 w-20 h-20 bg-yellow-400 border-2 border-black shadow-neo rotate-12 hidden md:block"></div>
+      <div className="absolute bottom-20 left-20 w-16 h-16 bg-blue-400 border-2 border-black shadow-neo rounded-full hidden md:block"></div>
+      <div className="absolute top-1/3 left-10 w-12 h-12 bg-green-400 border-2 border-black shadow-neo hidden md:block"></div>
+      <div className="w-full max-w-md bg-white border-2 border-black shadow-neo p-8 relative z-10">
+        <h1 className="text-3xl font-black uppercase tracking-tighter text-center mb-6 text-black">
           Create Account
         </h1>
 
         {error && (
-          <div className="mb-4 p-3 text-sm text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-md">
+          <div className="mb-4 p-3 text-sm font-bold text-black bg-red-400 border-2 border-black">
             {error}
           </div>
         )}
@@ -88,7 +91,7 @@ export default function SignUpPage() {
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-bold text-black mb-2 uppercase"
             >
               Name
             </label>
@@ -99,14 +102,14 @@ export default function SignUpPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="John Doe"
               required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-3 border-2 border-black bg-white text-black font-medium shadow-neo-sm focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] transition-all focus:outline-none"
             />
           </div>
 
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-bold text-black mb-2 uppercase"
             >
               Email
             </label>
@@ -117,14 +120,14 @@ export default function SignUpPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-3 border-2 border-black bg-white text-black font-medium shadow-neo-sm focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] transition-all focus:outline-none"
             />
           </div>
 
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-bold text-black mb-2 uppercase"
             >
               Password
             </label>
@@ -135,14 +138,14 @@ export default function SignUpPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-3 border-2 border-black bg-white text-black font-medium shadow-neo-sm focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] transition-all focus:outline-none"
             />
           </div>
 
           <div>
             <label
               htmlFor="confirmPassword"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-bold text-black mb-2 uppercase"
             >
               Confirm Password
             </label>
@@ -153,33 +156,33 @@ export default function SignUpPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-3 border-2 border-black bg-white text-black font-medium shadow-neo-sm focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] transition-all focus:outline-none"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-md transition-colors"
+            className="w-full py-3 px-4 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-black font-black uppercase border-2 border-black shadow-neo hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
           >
             {loading ? "Creating account..." : "Sign Up"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-6 text-center text-sm font-bold text-black">
           Already have an account?{" "}
           <Link
             href="/auth/signin"
-            className="text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            className="text-black underline decoration-2 decoration-green-400 hover:bg-green-400 px-1 transition-all"
           >
             Sign in
           </Link>
         </p>
 
-        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-4 text-center text-sm font-bold text-black">
           <Link
             href="/"
-            className="text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            className="text-black underline decoration-2 decoration-yellow-400 hover:bg-yellow-400 px-1 transition-all"
           >
             ← Back to Home
           </Link>

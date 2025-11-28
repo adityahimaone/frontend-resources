@@ -135,13 +135,19 @@ export function Header() {
 
             <div className="hidden md:flex items-center gap-4">
               {isAuthenticated ? (
-                <Button onClick={handleLogout} variant="ghost">
+                <Button
+                  onClick={handleLogout}
+                  className="bg-red-400 text-black font-bold border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </Button>
               ) : (
-                <Button asChild variant="ghost">
-                  <Link href="/admin/login">
+                <Button
+                  asChild
+                  className="bg-green-400 text-black font-bold border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                >
+                  <Link href="/auth/signin">
                     <LogIn className="h-4 w-4 mr-2" />
                     Login
                   </Link>
@@ -205,15 +211,17 @@ export function Header() {
                     {isAuthenticated ? (
                       <Button
                         onClick={handleLogout}
-                        variant="ghost"
-                        className="w-full"
+                        className="w-full bg-red-400 text-black font-bold border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                       >
                         <LogOut className="h-4 w-4 mr-2" />
                         Logout
                       </Button>
                     ) : (
-                      <Button asChild variant="ghost" className="w-full">
-                        <Link href="/admin/login">
+                      <Button
+                        asChild
+                        className="w-full bg-green-400 text-black font-bold border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                      >
+                        <Link href="/auth/signin">
                           <LogIn className="h-4 w-4 mr-2" />
                           Login
                         </Link>
