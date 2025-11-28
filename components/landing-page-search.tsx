@@ -90,10 +90,10 @@ export function LandingPageSearch() {
               }}
               onFocus={() => setIsOpen(true)}
               placeholder="Search resources, categories, and tags..."
-              className="w-full px-5 py-3.5 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 
-              shadow-sm bg-white dark:bg-gray-800 dark:text-gray-100 text-gray-800 pl-12"
+              className="w-full px-5 py-3.5 rounded-xl border-2 border-black focus:outline-none focus:ring-0 
+              shadow-neo focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] transition-all bg-white text-black pl-12 font-medium"
             />
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-black" />
           </div>
 
           <AnimatePresence>
@@ -103,34 +103,34 @@ export function LandingPageSearch() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.98 }}
                 transition={{ duration: 0.2 }}
-                className="absolute w-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 
-                overflow-hidden z-50 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95"
+                className="absolute w-full mt-2 bg-white rounded-xl shadow-neo border-2 border-black 
+                overflow-hidden z-50"
               >
                 {isLoading ? (
                   <div className="p-6 flex items-center justify-center">
                     <div className="flex items-center space-x-2">
-                      <Loader2 className="h-5 w-5 animate-spin text-gray-500 dark:text-gray-400" />
-                      <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
+                      <Loader2 className="h-5 w-5 animate-spin text-black" />
+                      <span className="text-black font-medium text-sm">
                         Searching...
                       </span>
                     </div>
                   </div>
                 ) : results.length === 0 ? (
                   <div className="p-6 text-center">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 mb-3">
-                      <Search className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 border-2 border-black mb-3">
+                      <Search className="h-6 w-6 text-black" />
                     </div>
-                    <p className="text-gray-500 dark:text-gray-400">
+                    <p className="text-black font-medium">
                       No results found for &quot;
-                      <span className="font-medium">{query}</span>&quot;
+                      <span className="font-bold">{query}</span>&quot;
                     </p>
                   </div>
                 ) : (
                   <div className="overflow-hidden">
                     {/* Categories */}
                     {results.some((r) => r.type === "category") && (
-                      <div className="border-b border-gray-100 dark:border-gray-700 relative">
-                        <div className="flex items-center px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/80">
+                      <div className="border-b-2 border-black relative">
+                        <div className="flex items-center px-4 py-2 text-xs font-black text-black bg-gray-100 border-b-2 border-black">
                           <Folder className="h-3.5 w-3.5 mr-1.5" />
                           <span>CATEGORIES</span>
                         </div>
@@ -145,16 +145,16 @@ export function LandingPageSearch() {
                               >
                                 <motion.div
                                   whileHover={{
-                                    backgroundColor: "rgba(0,0,0,0.03)",
+                                    backgroundColor: "rgba(0,0,0,0.05)",
                                   }}
-                                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 flex items-center justify-between group"
+                                  className="px-4 py-3 hover:bg-gray-50 flex items-center justify-between group border-b border-black last:border-0"
                                 >
                                   <div className="flex items-center">
-                                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                                    <span className="font-bold text-black">
                                       {result.name}
                                     </span>
                                   </div>
-                                  <Badge className="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
+                                  <Badge className="bg-black text-white text-xs font-bold">
                                     Category
                                   </Badge>
                                 </motion.div>
@@ -166,8 +166,8 @@ export function LandingPageSearch() {
 
                     {/* Tags */}
                     {results.some((r) => r.type === "tag") && (
-                      <div className="border-b border-gray-100 dark:border-gray-700">
-                        <div className="flex items-center px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/80">
+                      <div className="border-b-2 border-black">
+                        <div className="flex items-center px-4 py-2 text-xs font-black text-black bg-gray-100 border-b-2 border-black">
                           <Tag className="h-3.5 w-3.5 mr-1.5" />
                           <span>TAGS</span>
                         </div>
@@ -182,21 +182,16 @@ export function LandingPageSearch() {
                               >
                                 <motion.div
                                   whileHover={{
-                                    backgroundColor: "rgba(0,0,0,0.03)",
+                                    backgroundColor: "rgba(0,0,0,0.05)",
                                   }}
-                                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 flex items-center justify-between group"
+                                  className="px-4 py-3 hover:bg-gray-50 flex items-center justify-between group border-b border-black last:border-0"
                                 >
                                   <div className="flex items-center">
-                                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                                    <span className="font-bold text-black">
                                       {result.name}
                                     </span>
                                   </div>
-                                  <Badge
-                                    className={
-                                      result.color ||
-                                      "bg-purple-100 text-purple-600"
-                                    }
-                                  >
+                                  <Badge className="bg-white text-black border-black">
                                     {result.name}
                                   </Badge>
                                 </motion.div>
@@ -209,7 +204,7 @@ export function LandingPageSearch() {
                     {/* Resources */}
                     {results.some((r) => r.type === "resource") && (
                       <div>
-                        <div className="flex items-center px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/80">
+                        <div className="flex items-center px-4 py-2 text-xs font-black text-black bg-gray-100 border-b-2 border-black">
                           <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                           <span>RESOURCES</span>
                         </div>
@@ -226,23 +221,23 @@ export function LandingPageSearch() {
                               >
                                 <motion.div
                                   whileHover={{
-                                    backgroundColor: "rgba(0,0,0,0.03)",
+                                    backgroundColor: "rgba(0,0,0,0.05)",
                                   }}
-                                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 flex items-center justify-between group"
+                                  className="px-4 py-3 hover:bg-gray-50 flex items-center justify-between group border-b border-black last:border-0"
                                 >
                                   <div className="flex items-center">
-                                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                                    <span className="font-bold text-black">
                                       {result.title}
                                     </span>
                                   </div>
                                   <div className="flex items-center">
                                     <Badge
                                       variant="outline"
-                                      className="text-xs font-medium"
+                                      className="text-xs font-bold"
                                     >
                                       Resource
                                     </Badge>
-                                    <ExternalLink className="ml-1.5 h-3.5 w-3.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <ExternalLink className="ml-1.5 h-3.5 w-3.5 text-black opacity-0 group-hover:opacity-100 transition-opacity" />
                                   </div>
                                 </motion.div>
                               </a>

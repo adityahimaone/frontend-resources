@@ -292,8 +292,10 @@ function ResourcesPageImplementation({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold mb-4">All Resources</h1>
-          <p className="text-xl text-muted-foreground">
+          <h1 className="text-4xl font-black uppercase tracking-tighter mb-4">
+            All Resources
+          </h1>
+          <p className="text-xl font-medium text-muted-foreground border-l-4 border-black pl-4">
             Browse through our complete collection of frontend development
             resources
           </p>

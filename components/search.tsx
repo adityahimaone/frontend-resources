@@ -115,9 +115,9 @@ export function Search() {
             placeholder="Search categories, resources, tags..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 rounded-md border border-input bg-transparent text-sm ring-offset-background 
-              placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 
-              focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="w-full h-10 pl-10 pr-4 rounded-md border-2 border-black bg-white text-sm ring-offset-background 
+              placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 
+              shadow-neo focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] transition-all"
           />
         </div>
 
@@ -129,7 +129,7 @@ export function Search() {
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
               className="absolute top-full left-0 right-0 mt-2 bg-popover text-popover-foreground 
-                shadow-lg rounded-lg overflow-hidden z-50 border border-border"
+                shadow-neo rounded-lg overflow-hidden z-50 border-2 border-black"
             >
               {isLoading ? (
                 <div className="p-6 text-center">
