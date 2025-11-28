@@ -7,7 +7,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
-  description: string;
+  description: string | null;
 }
 
 // This function runs at build time to generate all possible category paths

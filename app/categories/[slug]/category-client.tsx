@@ -37,7 +37,7 @@ interface Resource {
 interface Category {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
 }
 
 type SortField = "title" | "createdAt";
