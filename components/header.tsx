@@ -77,7 +77,7 @@ export function Header() {
           <div className="flex space-x-2 items-center">
             <div
               className={cn(
-                `w-10 h-10 border-2 border-black flex items-center justify-center bg-yellow-400 shadow-neo-sm`
+                `w-6 h-6 md:w-10 shrink-0 md:h-10 border-2 border-black flex items-center justify-center bg-yellow-400 shadow-neo-sm`
               )}
             >
               <CodeXmlIcon className="h-6 w-6 text-black" />
@@ -85,7 +85,7 @@ export function Header() {
             <Link
               href="/"
               className={cn(
-                "text-2xl font-black uppercase tracking-tighter text-black"
+                "text-lg md:text-xl lg:text-2xl font-black uppercase tracking-tighter text-black"
               )}
             >
               Frontend Resources
