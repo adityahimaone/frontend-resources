@@ -10,18 +10,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  SUPER_ADMIN
+  GENERAL
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // Auth.js Models
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String     @unique
   emailVerified DateTime?
   image         String?
   password      String?
+  role          Role       @default(GENERAL)
   accounts      Account[]
   sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  categories    Category[]
+  resources     Resource[]
+  tags          Tag[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model Account {
@@ -65,38 +80,59 @@ model VerificationToken {
 
 // Application Models
 model Category {
-  id          String     @id @default(cuid())
-  name        String     @unique
-  slug        String     @unique
-  description String?
-  createdAt   DateTime   @default(now()) @map("created_at")
-  resources   Resource[]
+  id             String         @id @default(cuid())
+  name           String
+  slug           String
+  description    String?
+  isPublic       Boolean        @default(true) @map("is_public")
+  approvalStatus ApprovalStatus @default(PENDING) @map("approval_status")
+  userId         String?        @map("user_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  resources      Resource[]
 
+  @@unique([name, userId])
+  @@unique([slug, userId])
   @@map("categories")
 }
 
 model Resource {
-  id          String        @id @default(cuid())
-  title       String
-  url         String
-  description String?
-  categoryId  String?       @map("category_id")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  category    Category?     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  tags        ResourceTag[]
+  id             String         @id @default(cuid())
+  title          String
+  url            String
+  description    String?
+  isPublic       Boolean        @default(true) @map("is_public")
+  approvalStatus ApprovalStatus @default(PENDING) @map("approval_status")
+  isHot          Boolean        @default(false) @map("is_hot")
+  isTrending     Boolean        @default(false) @map("is_trending")
+  clickCount     Int            @default(0) @map("click_count")
+  categoryId     String?        @map("category_id")
+  userId         String?        @map("user_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  category       Category?      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tags           ResourceTag[]
 
+  @@unique([title, userId])
+  @@unique([url, userId])
   @@map("resources")
 }
 
 model Tag {
-  id        String        @id @default(cuid())
-  name      String        @unique
-  slug      String        @unique
-  color     String
-  createdAt DateTime      @default(now()) @map("created_at")
-  resources ResourceTag[]
+  id             String         @id @default(cuid())
+  name           String
+  slug           String
+  color          String
+  isPublic       Boolean        @default(true) @map("is_public")
+  approvalStatus ApprovalStatus @default(PENDING) @map("approval_status")
+  userId         String?        @map("user_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  resources      ResourceTag[]
 
+  @@unique([name, userId])
+  @@unique([slug, userId])
   @@map("tags")
 }
 

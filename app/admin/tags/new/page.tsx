@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Globe, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
 const TAG_COLORS = [
@@ -39,11 +41,15 @@ const TAG_COLORS = [
 ];
 
 export default function NewTagPage() {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [color, setColor] = useState(TAG_COLORS[0]);
+  const [isPublic, setIsPublic] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,21 +64,28 @@ export default function NewTagPage() {
         body: JSON.stringify({
           name,
           color,
+          isPublic,
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to create tag");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create tag");
+      }
 
       toast({
         title: "Success",
-        description: "Tag created successfully",
+        description:
+          isPublic && !isSuperAdmin
+            ? "Tag created and pending approval"
+            : "Tag created successfully",
       });
 
       router.push("/admin/tags");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to create tag",
+        description: error.message || "Failed to create tag",
         variant: "destructive",
       });
     } finally {
@@ -94,7 +107,7 @@ export default function NewTagPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold mb-4">New Tag</h1>
+          <h1 className="text-4xl font-black mb-4">New Tag</h1>
           <p className="text-xl text-muted-foreground">
             Create a new tag for resources
           </p>
@@ -106,15 +119,19 @@ export default function NewTagPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        <Card>
-          <CardHeader>
-            <CardTitle>Tag Details</CardTitle>
-            <CardDescription>Enter the details for the new tag</CardDescription>
+        <Card className="border-2 border-black shadow-neo">
+          <CardHeader className="border-b-2 border-black bg-purple-100">
+            <CardTitle className="font-black">Tag Details</CardTitle>
+            <CardDescription className="font-medium">
+              Enter the details for the new tag
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name" className="font-bold">
+                  Name
+                </Label>
                 <Input
                   id="name"
                   value={name}
@@ -123,7 +140,9 @@ export default function NewTagPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="color">Color</Label>
+                <Label htmlFor="color" className="font-bold">
+                  Color
+                </Label>
                 <Select value={color} onValueChange={setColor}>
                   <SelectTrigger>
                     <SelectValue />
@@ -141,12 +160,46 @@ export default function NewTagPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Preview</Label>
+                <Label className="font-bold">Preview</Label>
                 <div className="pt-2">
-                  <Badge className={color}>{name || "Tag Preview"}</Badge>
+                  <Badge className={`${color} border-2 border-black`}>
+                    {name || "Tag Preview"}
+                  </Badge>
                 </div>
               </div>
-              <Button type="submit" disabled={loading}>
+
+              {/* Visibility Switch */}
+              <div className="flex items-center justify-between p-4 border-2 border-black bg-gray-50">
+                <div className="flex items-center gap-3">
+                  {isPublic ? (
+                    <Globe className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Lock className="h-5 w-5 text-amber-600" />
+                  )}
+                  <div>
+                    <Label
+                      htmlFor="visibility"
+                      className="font-bold cursor-pointer"
+                    >
+                      {isPublic ? "Public" : "Private"}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {isPublic
+                        ? isSuperAdmin
+                          ? "Visible to everyone immediately"
+                          : "Will be visible after approval"
+                        : "Only visible to you"}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="visibility"
+                  checked={isPublic}
+                  onCheckedChange={setIsPublic}
+                />
+              </div>
+
+              <Button type="submit" disabled={loading} className="w-full">
                 {loading ? "Creating..." : "Create Tag"}
               </Button>
             </form>

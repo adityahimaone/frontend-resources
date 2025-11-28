@@ -13,6 +13,10 @@ interface Category {
 // This function runs at build time to generate all possible category paths
 export async function generateStaticParams() {
   const categories = await prisma.category.findMany({
+    where: {
+      isPublic: true,
+      approvalStatus: "APPROVED",
+    },
     select: { slug: true },
   });
 
@@ -30,9 +34,13 @@ export default async function CategoryPage({
   const { slug } = await params;
 
   try {
-    // Fetch the category data
-    const category = await prisma.category.findUnique({
-      where: { slug },
+    // Fetch the category data - use findFirst since slug is no longer unique
+    const category = await prisma.category.findFirst({
+      where: {
+        slug,
+        isPublic: true,
+        approvalStatus: "APPROVED",
+      },
     });
 
     if (!category) {
