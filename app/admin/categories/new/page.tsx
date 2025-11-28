@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 
 export default function NewCategoryPage() {
   const [loading, setLoading] = useState(false);
@@ -44,15 +43,19 @@ export default function NewCategoryPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("categories").insert([
-        {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           name,
           slug,
           description,
-        },
-      ]);
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to create category");
 
       toast({
         title: "Success",

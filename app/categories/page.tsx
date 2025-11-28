@@ -25,17 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/lib/supabase";
 
 interface Category {
   id: string;
   name: string;
   slug: string;
   description: string;
-  created_at: string;
+  createdAt: string;
 }
 
-type SortField = "name" | "created_at";
+type SortField = "name" | "createdAt";
 type SortOrder = "asc" | "desc";
 
 export default function CategoriesPage() {
@@ -51,16 +50,12 @@ export default function CategoriesPage() {
 
   async function fetchCategories() {
     try {
-      const query = supabase
-        .from("categories")
-        .select("*")
-        .order(sortField, { ascending: sortOrder === "asc" });
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        setCategories(data);
-      }
+      const response = await fetch(
+        `/api/categories?sortField=${sortField}&sortOrder=${sortOrder}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      const data = await response.json();
+      setCategories(data);
     } catch (error) {
       console.error("Error fetching categories:", error);
     } finally {
@@ -102,8 +97,10 @@ export default function CategoriesPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold mb-4">All Categories</h1>
-          <p className="text-xl text-muted-foreground">
+          <h1 className="text-4xl font-black uppercase tracking-tighter mb-4">
+            All Categories
+          </h1>
+          <p className="text-xl font-medium text-muted-foreground border-l-4 border-black pl-4">
             Browse through our curated collection of frontend development
             resources
           </p>

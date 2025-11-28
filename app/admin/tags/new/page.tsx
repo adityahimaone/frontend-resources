@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 
 const TAG_COLORS = [
   "bg-blue-500/10 text-blue-500",
@@ -51,14 +50,18 @@ export default function NewTagPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("tags").insert([
-        {
+      const response = await fetch("/api/tags", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           name,
           color,
-        },
-      ]);
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to create tag");
 
       toast({
         title: "Success",

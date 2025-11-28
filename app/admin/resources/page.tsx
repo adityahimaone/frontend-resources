@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 
 interface Resource {
   id: string;
@@ -56,7 +55,7 @@ interface Resource {
     name: string;
     color: string;
   }[];
-  created_at: string;
+  createdAt: string;
 }
 
 interface Category {
@@ -64,7 +63,7 @@ interface Category {
   name: string;
 }
 
-type SortField = "title" | "created_at";
+type SortField = "title" | "createdAt";
 type SortOrder = "asc" | "desc";
 
 export default function AdminResourcesPage() {
@@ -73,7 +72,7 @@ export default function AdminResourcesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const router = useRouter();
   const { toast } = useToast();
@@ -85,16 +84,12 @@ export default function AdminResourcesPage() {
 
   async function fetchCategories() {
     try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("id, name")
-        .order("name");
-
-      if (error) throw error;
-
-      if (data) {
-        setCategories(data);
-      }
+      const response = await fetch(
+        "/api/categories?sortField=name&sortOrder=asc"
+      );
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      const data = await response.json();
+      setCategories(data);
     } catch (error) {
       toast({
         title: "Error",
@@ -106,39 +101,18 @@ export default function AdminResourcesPage() {
 
   async function fetchResources() {
     try {
-      let query = supabase
-        .from("resources")
-        .select(
-          `
-          *,
-          category:categories(id, name),
-          tags:resource_tags(
-            tags(
-              id,
-              name,
-              color
-            )
-          )
-        `
-        )
-        .order(sortField, { ascending: sortOrder === "asc" });
-
-      if (selectedCategory && selectedCategory !== "all") {
-        query = query.eq("category_id", selectedCategory);
+      const params = new URLSearchParams({
+        sortField,
+        sortOrder,
+      });
+      if (selectedCategory !== "all") {
+        params.set("categoryId", selectedCategory);
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      if (data) {
-        // Transform the nested tags data structure
-        const transformedData = data.map((resource) => ({
-          ...resource,
-          tags: resource.tags.map((t: any) => t.tags),
-        }));
-        setResources(transformedData);
-      }
+      const response = await fetch(`/api/resources?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch resources");
+      const data = await response.json();
+      setResources(data);
     } catch (error) {
       toast({
         title: "Error",
@@ -152,9 +126,10 @@ export default function AdminResourcesPage() {
 
   async function deleteResource(id: string) {
     try {
-      const { error } = await supabase.from("resources").delete().eq("id", id);
-
-      if (error) throw error;
+      const response = await fetch(`/api/resources/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete resource");
 
       toast({
         title: "Success",

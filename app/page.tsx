@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/command";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
 import { CommandSearch } from "@/components/command-search";
 import { LandingPageSearch } from "@/components/landing-page-search";
 import RotatingText from "@/components/animation/RotatingText";
@@ -62,7 +61,7 @@ interface Resource {
     name: string;
     color: string;
   }[];
-  created_at: string;
+  createdAt: string;
 }
 
 const categories = [
@@ -72,7 +71,7 @@ const categories = [
       "Explore modern UI component libraries like shadcn/ui and Flowbite",
     icon: Layers,
     href: "/categories/ui-components",
-    color: "bg-blue-500/10 text-blue-500",
+    color: "bg-blue-400",
   },
   {
     title: "Animation Libraries",
@@ -80,7 +79,7 @@ const categories = [
       "Discover powerful animation tools like Framer Motion and GSAP",
     icon: Zap,
     href: "/categories/animation-libraries",
-    color: "bg-purple-500/10 text-purple-500",
+    color: "bg-purple-400",
   },
   {
     title: "UI Animation Components",
@@ -88,14 +87,14 @@ const categories = [
       "Find ready-to-use animated components from ReactBits and Aceternity UI",
     icon: Code2,
     href: "/categories/ui-animation-components",
-    color: "bg-green-500/10 text-green-500",
+    color: "bg-green-400",
   },
   {
     title: "Design Inspiration",
     description: "Get inspired by award-winning websites and designs",
     icon: Palette,
     href: "/categories/inspiration",
-    color: "bg-orange-500/10 text-orange-500",
+    color: "bg-orange-400",
   },
   {
     title: "Frameworks",
@@ -103,7 +102,7 @@ const categories = [
       "Learn about Next.js, Astro, Remix, and other modern frameworks",
     icon: Compass,
     href: "/categories/frameworks",
-    color: "bg-red-500/10 text-red-500",
+    color: "bg-red-400",
   },
   // Others
   {
@@ -111,7 +110,7 @@ const categories = [
     description: "Discover other useful frontend resources",
     icon: Notebook,
     href: "/categories/other-tools",
-    color: "bg-pink-500/10 text-pink-500",
+    color: "bg-pink-400",
   },
 ];
 
@@ -132,30 +131,12 @@ export default function Home() {
 
     const searchData = async () => {
       try {
-        const [categoriesResponse, resourcesResponse] = await Promise.all([
-          supabase
-            .from("categories")
-            .select("id, name, slug")
-            .ilike("name", `%${query}%`)
-            .limit(5),
-          supabase
-            .from("resources")
-            .select("id, title, url")
-            .ilike("title", `%${query}%`)
-            .limit(5),
-        ]);
-
-        const categories = (categoriesResponse.data || []).map((category) => ({
-          ...category,
-          type: "category" as const,
-        }));
-
-        const resources = (resourcesResponse.data || []).map((resource) => ({
-          ...resource,
-          type: "resource" as const,
-        }));
-
-        setResults([...categories, ...resources]);
+        const response = await fetch(
+          `/api/search?q=${encodeURIComponent(query)}&limit=5`
+        );
+        if (!response.ok) throw new Error("Search failed");
+        const data = await response.json();
+        setResults(data);
       } catch (error) {
         console.error("Error searching:", error);
       }
@@ -167,51 +148,28 @@ export default function Home() {
 
   const fetchRecentResources = async () => {
     try {
-      const { data, error } = await supabase
-        .from("resources")
-        .select(
-          `
-          *,
-          category:categories(name),
-          tags:resource_tags(
-            tags(
-              id,
-              name,
-              color
-            )
-          )
-        `
-        )
-        .order("created_at", { ascending: false })
-        .limit(6);
-
-      if (!error && data) {
-        const transformedData = data.map((resource) => ({
-          ...resource,
-          tags: resource.tags.map((t: any) => t.tags),
-        }));
-        setRecentResources(transformedData);
-      }
+      const response = await fetch(
+        "/api/resources?sortField=createdAt&sortOrder=desc&limit=6"
+      );
+      if (!response.ok) throw new Error("Failed to fetch resources");
+      const data = await response.json();
+      setRecentResources(data);
     } catch (error) {
       console.error("Error fetching recent resources:", error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-background to-secondary">
-      <div className="h-full">
-        {/* <Aurora
-          colorStops={["#38bdf8", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899"]}
-          blend={0.5}
-          amplitude={2.0}
-          speed={0.5}
-        /> */}
-      </div>
+    <div className="min-h-screen bg-background text-foreground font-mono">
       <div className="">
-        <div id="hero" className="relative">
-          <div className="absolute inset-0 z-0">
-            <Squares speed={0.5} squareSize={40} direction="diagonal" />
-          </div>
+        <div
+          id="hero"
+          className="relative border-b-2 border-black bg-yellow-300 overflow-hidden"
+        >
+          <div className="absolute top-10 left-10 w-16 h-16 bg-pink-400 border-2 border-black shadow-neo rounded-full opacity-100 hidden md:block animate-bounce delay-700"></div>
+          <div className="absolute bottom-10 right-10 w-24 h-24 bg-blue-400 border-2 border-black shadow-neo rotate-12 opacity-100 hidden md:block animate-pulse"></div>
+          <div className="absolute top-20 right-20 w-12 h-12 bg-green-400 border-2 border-black shadow-neo rotate-45 opacity-100 hidden md:block"></div>
+
           <div className="relative z-10 container mx-auto px-4 py-28">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -219,13 +177,13 @@ export default function Home() {
               transition={{ duration: 0.5 }}
               className="text-center mb-16 relative"
             >
-              <div className="flex text-4xl md:text-6xl items-center justify-center mb-6 gap-2">
-                <h1 className="font-bold bg-clip-text text-transparent bg-linear-to-r from-[#38bdf8] to-[#3b82f6]">
+              <div className="flex flex-col md:flex-row text-4xl md:text-6xl items-center justify-center mb-6 gap-4 font-black uppercase tracking-tighter">
+                <h1 className="text-black bg-white px-4 py-2 border-2 border-black shadow-neo transform -rotate-2 hover:rotate-0 transition-transform duration-300">
                   Frontend
                 </h1>
                 <RotatingText
                   texts={["Resources", "Tools", "Inspiration"]}
-                  mainClassName="px-2 sm:px-2 bg-[#3b82f6] md:px-3 font-medium text-white overflow-hidden py-0.5 sm:py-1 md:py-2 justify-center rounded-lg"
+                  mainClassName="px-4 bg-pink-500 text-white py-2 justify-center border-2 border-black shadow-neo transform rotate-2 hover:rotate-0 transition-transform duration-300"
                   staggerFrom={"last"}
                   initial={{ y: "100%" }}
                   animate={{ y: 0 }}
@@ -236,13 +194,13 @@ export default function Home() {
                   rotationInterval={2000}
                 />
               </div>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-xl font-bold max-w-2xl mx-auto mb-8 border-2 border-black p-6 bg-white shadow-neo relative z-20">
                 A curated collection of the best frontend development tools,
                 libraries, and inspiration sources to supercharge your web
                 development workflow.
               </p>
               {/* Search Component */}
-              <div className="mt-2">
+              <div className="mt-2 max-w-2xl mx-auto relative z-30">
                 <LandingPageSearch />
               </div>
             </motion.div>
@@ -250,7 +208,7 @@ export default function Home() {
         </div>
         <div className="container mx-auto px-4 py-24">
           {/* Cetegories */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
             {categories.map((category, index) => (
               <motion.div
                 key={category.title}
@@ -259,18 +217,20 @@ export default function Home() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
                 <Link href={category.href}>
-                  <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group">
+                  <Card className="h-full cursor-pointer group hover:-translate-y-1 transition-transform duration-200 bg-white">
                     <CardHeader>
                       <div
-                        className={`w-12 h-12 rounded-lg ${category.color} flex items-center justify-center mb-4`}
+                        className={`w-12 h-12 border-2 border-black ${category.color} flex items-center justify-center mb-4 shadow-neo-sm`}
                       >
-                        <category.icon className="w-6 h-6" />
+                        <category.icon className="w-6 h-6 text-black" />
                       </div>
-                      <CardTitle className="flex items-center justify-between">
+                      <CardTitle className="flex items-center justify-between text-xl font-black uppercase">
                         {category.title}
-                        <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
+                        <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all text-black" />
                       </CardTitle>
-                      <CardDescription>{category.description}</CardDescription>
+                      <CardDescription className="text-black font-medium mt-2">
+                        {category.description}
+                      </CardDescription>
                     </CardHeader>
                   </Card>
                 </Link>
@@ -283,10 +243,14 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="mb-16 text-center"
           >
-            <Button asChild size="lg">
+            <Button
+              asChild
+              size="lg"
+              className="text-lg px-8 py-6 font-black uppercase tracking-wider"
+            >
               <Link href="/categories">
                 Browse All Resources
-                <ArrowRight className="ml-2 w-5 h-5" />
+                <ArrowRight className="ml-2 w-6 h-6" />
               </Link>
             </Button>
           </motion.div>
@@ -297,9 +261,11 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="mb-16"
           >
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-3xl font-bold">Recently Added Resources</h2>
-              <Button asChild variant="outline">
+            <div className="flex items-center justify-between mb-8 border-b-2 border-black pb-4">
+              <h2 className="text-3xl font-black uppercase tracking-tighter">
+                Recently Added Resources
+              </h2>
+              <Button asChild variant="outline" className="font-bold">
                 <Link href="/resources">
                   View All Resources
                   <ArrowRight className="ml-2 w-5 h-5" />

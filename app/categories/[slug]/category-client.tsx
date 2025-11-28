@@ -25,14 +25,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/lib/supabase";
 
 interface Resource {
   id: string;
   title: string;
   url: string;
   description: string;
-  created_at: string;
+  createdAt: string;
 }
 
 interface Category {
@@ -41,7 +40,7 @@ interface Category {
   description: string;
 }
 
-type SortField = "title" | "created_at";
+type SortField = "title" | "createdAt";
 type SortOrder = "asc" | "desc";
 
 export default function CategoryClient({
@@ -62,15 +61,16 @@ export default function CategoryClient({
 
   async function fetchResources() {
     try {
-      const { data: resourcesData, error: resourcesError } = await supabase
-        .from("resources")
-        .select("*")
-        .eq("category_id", category.id)
-        .order(sortField, { ascending: sortOrder === "asc" });
+      const params = new URLSearchParams({
+        categoryId: category.id,
+        sortField,
+        sortOrder,
+      });
 
-      if (!resourcesError && resourcesData) {
-        setResources(resourcesData);
-      }
+      const response = await fetch(`/api/resources?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch resources");
+      const data = await response.json();
+      setResources(data);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -114,8 +114,10 @@ export default function CategoryClient({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold mb-4">{category.name}</h1>
-          <p className="text-xl text-muted-foreground">
+          <h1 className="text-4xl font-black uppercase tracking-tighter mb-4">
+            {category.name}
+          </h1>
+          <p className="text-xl font-medium text-muted-foreground border-l-4 border-black pl-4">
             {category.description}
           </p>
         </motion.div>
@@ -141,7 +143,7 @@ export default function CategoryClient({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="title">Title</SelectItem>
-              <SelectItem value="created_at">Date Added</SelectItem>
+              <SelectItem value="createdAt">Date Added</SelectItem>
             </SelectContent>
           </Select>
           <Button

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CodeXmlIcon, LogIn, LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 import { Search } from "./search";
 import { cn } from "@/lib/utils";
 import GradientText from "./animation/GradientText";
@@ -27,7 +26,8 @@ import {
 import { CommandSearch } from "./command-search";
 
 export function Header() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { data: session, status } = useSession();
+  const isAuthenticated = !!session;
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -41,33 +41,9 @@ export function Header() {
     return pathname.startsWith(path);
   };
 
-  useEffect(() => {
-    checkAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  async function checkAuth() {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    } catch (error) {
-      console.error("Error checking auth status:", error);
-    }
-  }
-
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await signOut({ redirect: false });
 
       toast({
         title: "Success",
@@ -75,6 +51,7 @@ export function Header() {
       });
 
       router.push("/");
+      router.refresh();
     } catch (error) {
       toast({
         title: "Error",
@@ -89,10 +66,10 @@ export function Header() {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className={cn(
-        "absolute top-0 left-0 right-0 z-50 ",
+        "absolute top-0 left-0 right-0 z-50 border-b-2 border-black bg-white",
         isHomePage
-          ? "bg-transparent"
-          : "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
+          ? "bg-white"
+          : "bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60"
       )}
     >
       <div className="container mx-auto px-4 py-4">
@@ -100,38 +77,18 @@ export function Header() {
           <div className="flex space-x-2 items-center">
             <div
               className={cn(
-                `w-8 h-8 rounded-lg flex items-center justify-center`,
-                isActive("/")
-                  ? "text-blue-500 bg-blue-500/10"
-                  : "text-purple-500 bg-purple-500/10"
+                `w-10 h-10 border-2 border-black flex items-center justify-center bg-yellow-400 shadow-neo-sm`
               )}
             >
-              <CodeXmlIcon className="h-6 w-6" />
+              <CodeXmlIcon className="h-6 w-6 text-black" />
             </div>
             <Link
               href="/"
               className={cn(
-                "text-2xl font-bold",
-                isActive("/")
-                  ? "text-blue-500"
-                  : "text-muted-foreground hover:text-blue-500 transition-colors"
+                "text-2xl font-black uppercase tracking-tighter text-black"
               )}
             >
-              <GradientText
-                colors={
-                  isActive("/")
-                    ? ["#38bdf8", "#3b82f6", "#38bdf8", "#3b82f6", "#38bdf8"]
-                    : ["#9c40ff", "#7f9cf5", "#9c40ff", "#7f9cf5", "#9c40ff"]
-                }
-                animationSpeed={3}
-                showBorder={false}
-                className={cn(
-                  "text-base md:text-xl font-bold custom-class",
-                  isActive("/") ? "" : "text-muted-foreground "
-                )}
-              >
-                Frontend Resources
-              </GradientText>
+              Frontend Resources
             </Link>
           </div>
 
@@ -142,10 +99,10 @@ export function Header() {
               <Link
                 href="/categories"
                 className={cn(
-                  "transition-colors",
+                  "font-bold text-black hover:bg-pink-400 hover:text-black px-3 py-1 border-2 border-transparent hover:border-black hover:shadow-neo-sm transition-all",
                   isActive("/categories")
-                    ? "text-foreground font-medium"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-pink-400 border-black shadow-neo-sm"
+                    : ""
                 )}
               >
                 Categories
@@ -153,10 +110,10 @@ export function Header() {
               <Link
                 href="/resources"
                 className={cn(
-                  "transition-colors",
+                  "font-bold text-black hover:bg-blue-400 hover:text-black px-3 py-1 border-2 border-transparent hover:border-black hover:shadow-neo-sm transition-all",
                   isActive("/resources")
-                    ? "text-foreground font-medium"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-blue-400 border-black shadow-neo-sm"
+                    : ""
                 )}
               >
                 Resources
@@ -165,10 +122,10 @@ export function Header() {
                 <Link
                   href="/admin"
                   className={cn(
-                    "transition-colors",
+                    "font-bold text-black hover:bg-green-400 hover:text-black px-3 py-1 border-2 border-transparent hover:border-black hover:shadow-neo-sm transition-all",
                     isActive("/admin")
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-green-400 border-black shadow-neo-sm"
+                      : ""
                   )}
                 >
                   Dashboard

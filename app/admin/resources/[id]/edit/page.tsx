@@ -1,14 +1,11 @@
-// filepath: /c:/Development/Next/next-frontend-resources/app/admin/resources/[id]/edit/page.tsx
-import { supabase } from "@/lib/supabase";
+import prisma from "@/lib/prisma";
 import EditResourceClient from "./EditResourceClient";
 
 export async function generateStaticParams() {
   try {
-    const { data: resources } = await supabase.from("resources").select("id");
-
-    if (!resources) {
-      return [];
-    }
+    const resources = await prisma.resource.findMany({
+      select: { id: true },
+    });
 
     return resources.map((resource) => ({
       id: resource.id,
@@ -19,10 +16,11 @@ export async function generateStaticParams() {
   }
 }
 
-export default function EditResourcePage({
+export default async function EditResourcePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  return <EditResourceClient id={params.id} />;
+  const { id } = await params;
+  return <EditResourceClient id={id} />;
 }
