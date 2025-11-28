@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CodeXmlIcon, LogIn, LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 import { Search } from "./search";
 import { cn } from "@/lib/utils";
 import GradientText from "./animation/GradientText";
@@ -27,7 +26,8 @@ import {
 import { CommandSearch } from "./command-search";
 
 export function Header() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { data: session, status } = useSession();
+  const isAuthenticated = !!session;
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -41,33 +41,9 @@ export function Header() {
     return pathname.startsWith(path);
   };
 
-  useEffect(() => {
-    checkAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  async function checkAuth() {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    } catch (error) {
-      console.error("Error checking auth status:", error);
-    }
-  }
-
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await signOut({ redirect: false });
 
       toast({
         title: "Success",
@@ -75,6 +51,7 @@ export function Header() {
       });
 
       router.push("/");
+      router.refresh();
     } catch (error) {
       toast({
         title: "Error",

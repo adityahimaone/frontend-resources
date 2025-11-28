@@ -1,6 +1,6 @@
 // app/categories/[slug]/page.tsx
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import prisma from "@/lib/prisma";
 import CategoryClient from "./category-client";
 
 interface Category {
@@ -12,45 +12,30 @@ interface Category {
 
 // This function runs at build time to generate all possible category paths
 export async function generateStaticParams() {
-  const { data: categories } = await supabase.from("categories").select("slug");
-
-  if (!categories) return [];
+  const categories = await prisma.category.findMany({
+    select: { slug: true },
+  });
 
   return categories.map((category) => ({
     slug: category.slug,
   }));
 }
 
-// Create a list of valid slugs
-const getValidSlugs = async () => {
-  const { data: categories } = await supabase.from("categories").select("slug");
-
-  return categories?.map((category) => category.slug) || [];
-};
-
 // This is a server component that fetches the initial data
 export default async function CategoryPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  // Get valid slugs
-  const validSlugs = await getValidSlugs();
-
-  // Check if the current slug is valid
-  if (!validSlugs.includes(params.slug)) {
-    notFound();
-  }
+  const { slug } = await params;
 
   try {
     // Fetch the category data
-    const { data: category, error } = await supabase
-      .from("categories")
-      .select("*")
-      .eq("slug", params.slug)
-      .single();
+    const category = await prisma.category.findUnique({
+      where: { slug },
+    });
 
-    if (error || !category) {
+    if (!category) {
       return notFound();
     }
 

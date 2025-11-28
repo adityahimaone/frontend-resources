@@ -32,17 +32,16 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 
 interface Tag {
   id: string;
   name: string;
   slug: string;
   color: string;
-  created_at: string;
+  createdAt: string;
 }
 
-type SortField = "name" | "created_at";
+type SortField = "name" | "createdAt";
 type SortOrder = "asc" | "desc";
 
 export default function TagsPage() {
@@ -60,16 +59,12 @@ export default function TagsPage() {
 
   async function fetchTags() {
     try {
-      const { data, error } = await supabase
-        .from("tags")
-        .select("*")
-        .order(sortField, { ascending: sortOrder === "asc" });
-
-      if (error) throw error;
-
-      if (data) {
-        setTags(data);
-      }
+      const response = await fetch(
+        `/api/tags?sortField=${sortField}&sortOrder=${sortOrder}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch tags");
+      const data = await response.json();
+      setTags(data);
     } catch (error) {
       toast({
         title: "Error",
@@ -83,9 +78,10 @@ export default function TagsPage() {
 
   async function deleteTag(id: string) {
     try {
-      const { error } = await supabase.from("tags").delete().eq("id", id);
-
-      if (error) throw error;
+      const response = await fetch(`/api/tags/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete tag");
 
       toast({
         title: "Success",

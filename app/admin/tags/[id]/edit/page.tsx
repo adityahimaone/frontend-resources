@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 
 interface Tag {
   id: string;
@@ -58,17 +57,10 @@ export default function EditTagPage({ params }: { params: { id: string } }) {
 
   async function fetchTag() {
     try {
-      const { data, error } = await supabase
-        .from("tags")
-        .select("*")
-        .eq("id", params.id)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setTag(data);
-      }
+      const response = await fetch(`/api/tags/${params.id}`);
+      if (!response.ok) throw new Error("Failed to fetch tag");
+      const data = await response.json();
+      setTag(data);
     } catch (error) {
       toast({
         title: "Error",
@@ -88,15 +80,18 @@ export default function EditTagPage({ params }: { params: { id: string } }) {
     setSaving(true);
 
     try {
-      const { error } = await supabase
-        .from("tags")
-        .update({
+      const response = await fetch(`/api/tags/${tag.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           name: tag.name,
           color: tag.color,
-        })
-        .eq("id", tag.id);
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to update tag");
 
       toast({
         title: "Success",

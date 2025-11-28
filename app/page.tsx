@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/command";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
 import { CommandSearch } from "@/components/command-search";
 import { LandingPageSearch } from "@/components/landing-page-search";
 import RotatingText from "@/components/animation/RotatingText";
@@ -62,7 +61,7 @@ interface Resource {
     name: string;
     color: string;
   }[];
-  created_at: string;
+  createdAt: string;
 }
 
 const categories = [
@@ -132,30 +131,12 @@ export default function Home() {
 
     const searchData = async () => {
       try {
-        const [categoriesResponse, resourcesResponse] = await Promise.all([
-          supabase
-            .from("categories")
-            .select("id, name, slug")
-            .ilike("name", `%${query}%`)
-            .limit(5),
-          supabase
-            .from("resources")
-            .select("id, title, url")
-            .ilike("title", `%${query}%`)
-            .limit(5),
-        ]);
-
-        const categories = (categoriesResponse.data || []).map((category) => ({
-          ...category,
-          type: "category" as const,
-        }));
-
-        const resources = (resourcesResponse.data || []).map((resource) => ({
-          ...resource,
-          type: "resource" as const,
-        }));
-
-        setResults([...categories, ...resources]);
+        const response = await fetch(
+          `/api/search?q=${encodeURIComponent(query)}&limit=5`
+        );
+        if (!response.ok) throw new Error("Search failed");
+        const data = await response.json();
+        setResults(data);
       } catch (error) {
         console.error("Error searching:", error);
       }
@@ -167,31 +148,12 @@ export default function Home() {
 
   const fetchRecentResources = async () => {
     try {
-      const { data, error } = await supabase
-        .from("resources")
-        .select(
-          `
-          *,
-          category:categories(name),
-          tags:resource_tags(
-            tags(
-              id,
-              name,
-              color
-            )
-          )
-        `
-        )
-        .order("created_at", { ascending: false })
-        .limit(6);
-
-      if (!error && data) {
-        const transformedData = data.map((resource) => ({
-          ...resource,
-          tags: resource.tags.map((t: any) => t.tags),
-        }));
-        setRecentResources(transformedData);
-      }
+      const response = await fetch(
+        "/api/resources?sortField=createdAt&sortOrder=desc&limit=6"
+      );
+      if (!response.ok) throw new Error("Failed to fetch resources");
+      const data = await response.json();
+      setRecentResources(data);
     } catch (error) {
       console.error("Error fetching recent resources:", error);
     }

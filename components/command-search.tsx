@@ -12,7 +12,6 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 
 interface SearchResult {
@@ -41,45 +40,12 @@ export function CommandSearch() {
     setIsLoading(true);
 
     try {
-      const [categoriesResponse, resourcesResponse, tagsResponse] =
-        await Promise.all([
-          supabase
-            .from("categories")
-            .select("id, name, slug")
-            .ilike("name", `%${searchQuery}%`)
-            .limit(5),
-          supabase
-            .from("resources")
-            .select("id, title, url")
-            .ilike("title", `%${searchQuery}%`)
-            .limit(5),
-          supabase
-            .from("tags")
-            .select("id, name, color")
-            .ilike("name", `%${searchQuery}%`)
-            .limit(5),
-        ]);
-
-      if (categoriesResponse.error) throw categoriesResponse.error;
-      if (resourcesResponse.error) throw resourcesResponse.error;
-      if (tagsResponse.error) throw tagsResponse.error;
-
-      const categories = (categoriesResponse.data || []).map((category) => ({
-        ...category,
-        type: "category" as const,
-      }));
-
-      const resources = (resourcesResponse.data || []).map((resource) => ({
-        ...resource,
-        type: "resource" as const,
-      }));
-
-      const tags = (tagsResponse.data || []).map((tag) => ({
-        ...tag,
-        type: "tag" as const,
-      }));
-
-      setResults([...categories, ...resources, ...tags]);
+      const response = await fetch(
+        `/api/search?q=${encodeURIComponent(searchQuery)}&limit=5`
+      );
+      if (!response.ok) throw new Error("Search failed");
+      const data = await response.json();
+      setResults(data);
     } catch (error) {
       console.error("Error searching:", error);
       setResults([]);

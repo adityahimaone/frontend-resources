@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 
 interface Category {
   id: string;
@@ -40,17 +39,10 @@ export default function EditCategoryClient({ id }: { id: string }) {
 
   async function fetchCategory() {
     try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setCategory(data);
-      }
+      const response = await fetch(`/api/categories/${id}`);
+      if (!response.ok) throw new Error("Failed to fetch category");
+      const data = await response.json();
+      setCategory(data);
     } catch (error) {
       toast({
         title: "Error",
@@ -70,16 +62,19 @@ export default function EditCategoryClient({ id }: { id: string }) {
     setSaving(true);
 
     try {
-      const { error } = await supabase
-        .from("categories")
-        .update({
+      const response = await fetch(`/api/categories/${category.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           name: category.name,
           slug: category.slug,
           description: category.description,
-        })
-        .eq("id", category.id);
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to update category");
 
       toast({
         title: "Success",

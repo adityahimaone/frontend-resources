@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
 
 interface Resource {
@@ -32,7 +31,7 @@ interface Resource {
   title: string;
   url: string;
   description: string;
-  category_id: string;
+  categoryId: string;
 }
 
 interface Category {
@@ -44,12 +43,6 @@ interface Tag {
   id: string;
   name: string;
   color: string;
-}
-
-interface ResourceTag {
-  resource_id: string;
-  tag_id: string;
-  tags: Tag;
 }
 
 const TAG_COLORS = [
@@ -83,16 +76,12 @@ export default function EditResourceClient({ id }: { id: string }) {
 
   async function fetchCategories() {
     try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("id, name")
-        .order("name");
-
-      if (error) throw error;
-
-      if (data) {
-        setCategories(data);
-      }
+      const response = await fetch(
+        "/api/categories?sortField=name&sortOrder=asc"
+      );
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      const data = await response.json();
+      setCategories(data);
     } catch (error) {
       toast({
         title: "Error",
@@ -104,22 +93,16 @@ export default function EditResourceClient({ id }: { id: string }) {
 
   async function fetchTags() {
     try {
-      const { data, error } = await supabase
-        .from("tags")
-        .select("*")
-        .order("name");
-
-      if (error) throw error;
-
-      if (data) {
-        setTags(
-          data.map((tag) => ({
-            value: tag.id,
-            label: tag.name,
-            color: tag.color,
-          }))
-        );
-      }
+      const response = await fetch("/api/tags?sortField=name&sortOrder=asc");
+      if (!response.ok) throw new Error("Failed to fetch tags");
+      const data = await response.json();
+      setTags(
+        data.map((tag: any) => ({
+          value: tag.id,
+          label: tag.name,
+          color: tag.color,
+        }))
+      );
     } catch (error) {
       toast({
         title: "Error",
@@ -131,42 +114,23 @@ export default function EditResourceClient({ id }: { id: string }) {
 
   async function fetchResource() {
     try {
-      // Fetch resource
-      const { data: resourceData, error: resourceError } = await supabase
-        .from("resources")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const response = await fetch(`/api/resources/${id}`);
+      if (!response.ok) throw new Error("Failed to fetch resource");
+      const data = await response.json();
 
-      if (resourceError) throw resourceError;
+      setResource({
+        id: data.id,
+        title: data.title,
+        url: data.url,
+        description: data.description,
+        categoryId: data.categoryId,
+      });
 
-      // Fetch resource tags
-      const { data: tagData, error: tagError } = await supabase
-        .from("resource_tags")
-        .select(
-          `
-          resource_id,
-          tag_id,
-          tags (
-            id,
-            name,
-            color
-          )
-        `
-        )
-        .eq("resource_id", id);
-
-      if (tagError) throw tagError;
-
-      if (resourceData) {
-        setResource(resourceData);
-      }
-
-      if (tagData && Array.isArray(tagData)) {
-        const extractedTags = tagData.map((rt: any) => ({
-          value: rt.tags.id,
-          label: rt.tags.name,
-          color: rt.tags.color,
+      if (data.tags && Array.isArray(data.tags)) {
+        const extractedTags = data.tags.map((tag: Tag) => ({
+          value: tag.id,
+          label: tag.name,
+          color: tag.color,
         }));
         setSelectedTags(extractedTags);
       }
@@ -184,32 +148,30 @@ export default function EditResourceClient({ id }: { id: string }) {
 
   async function createNewTag(name: string) {
     try {
-      // Generate a random color from the TAG_COLORS array
       const randomColor =
         TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
 
-      const { data, error } = await supabase
-        .from("tags")
-        .insert([
-          {
-            name,
-            color: randomColor,
-          },
-        ])
-        .select()
-        .single();
+      const response = await fetch("/api/tags", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          color: randomColor,
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to create tag");
+      const data = await response.json();
 
-      if (data) {
-        const newTag = {
-          value: data.id,
-          label: data.name,
-          color: data.color,
-        };
-        setTags([...tags, newTag]);
-        setSelectedTags([...selectedTags, newTag]);
-      }
+      const newTag = {
+        value: data.id,
+        label: data.name,
+        color: data.color,
+      };
+      setTags([...tags, newTag]);
+      setSelectedTags([...selectedTags, newTag]);
     } catch (error) {
       toast({
         title: "Error",
@@ -226,38 +188,21 @@ export default function EditResourceClient({ id }: { id: string }) {
     setSaving(true);
 
     try {
-      // Update resource
-      const { error: resourceError } = await supabase
-        .from("resources")
-        .update({
+      const response = await fetch(`/api/resources/${resource.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           title: resource.title,
           url: resource.url,
           description: resource.description,
-          category_id: resource.category_id,
-        })
-        .eq("id", resource.id);
+          categoryId: resource.categoryId,
+          tagIds: selectedTags.map((tag) => tag.value),
+        }),
+      });
 
-      if (resourceError) throw resourceError;
-
-      // Delete existing tag associations
-      const { error: deleteError } = await supabase
-        .from("resource_tags")
-        .delete()
-        .eq("resource_id", resource.id);
-
-      if (deleteError) throw deleteError;
-
-      // Create new tag associations
-      if (selectedTags.length > 0) {
-        const { error: tagError } = await supabase.from("resource_tags").insert(
-          selectedTags.map((tag) => ({
-            resource_id: resource.id,
-            tag_id: tag.value,
-          }))
-        );
-
-        if (tagError) throw tagError;
-      }
+      if (!response.ok) throw new Error("Failed to update resource");
 
       toast({
         title: "Success",
@@ -355,9 +300,9 @@ export default function EditResourceClient({ id }: { id: string }) {
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select
-                  value={resource.category_id}
+                  value={resource.categoryId}
                   onValueChange={(value) =>
-                    setResource({ ...resource, category_id: value })
+                    setResource({ ...resource, categoryId: value })
                   }
                 >
                   <SelectTrigger>

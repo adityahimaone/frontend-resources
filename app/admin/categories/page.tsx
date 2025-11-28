@@ -38,17 +38,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 
 interface Category {
   id: string;
   name: string;
   slug: string;
   description: string;
-  created_at: string;
+  createdAt: string;
 }
 
-type SortField = "name" | "created_at";
+type SortField = "name" | "createdAt";
 type SortOrder = "asc" | "desc";
 
 export default function AdminCategoriesPage() {
@@ -66,16 +65,12 @@ export default function AdminCategoriesPage() {
 
   async function fetchCategories() {
     try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .order(sortField, { ascending: sortOrder === "asc" });
-
-      if (error) throw error;
-
-      if (data) {
-        setCategories(data);
-      }
+      const response = await fetch(
+        `/api/categories?sortField=${sortField}&sortOrder=${sortOrder}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      const data = await response.json();
+      setCategories(data);
     } catch (error) {
       toast({
         title: "Error",
@@ -89,9 +84,10 @@ export default function AdminCategoriesPage() {
 
   async function deleteCategory(id: string) {
     try {
-      const { error } = await supabase.from("categories").delete().eq("id", id);
-
-      if (error) throw error;
+      const response = await fetch(`/api/categories/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete category");
 
       toast({
         title: "Success",

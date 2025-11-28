@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
 import { ResourceCard } from "@/components/ui/resources-card";
 import {
   Popover,
@@ -54,7 +53,7 @@ interface Resource {
     name: string;
     color: string;
   }[];
-  created_at: string;
+  createdAt: string;
 }
 
 interface Category {
@@ -62,13 +61,13 @@ interface Category {
   name: string;
 }
 
-interface Tag {
+interface TagType {
   id: string;
   name: string;
   color: string;
 }
 
-type SortField = "title" | "created_at";
+type SortField = "title" | "createdAt";
 type SortOrder = "asc" | "desc";
 
 const RESOURCES_PER_PAGE = 9;
@@ -89,16 +88,16 @@ function ResourcesPageImplementation({
 }) {
   const [resources, setResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
+  const [tags, setTags] = useState<TagType[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<TagType[]>([]);
   const [tagSearchValue, setTagSearchValue] = useState("");
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -151,14 +150,12 @@ function ResourcesPageImplementation({
 
   async function fetchCategories() {
     try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("id, name")
-        .order("name");
-
-      if (!error && data) {
-        setCategories(data);
-      }
+      const response = await fetch(
+        "/api/categories?sortField=name&sortOrder=asc"
+      );
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      const data = await response.json();
+      setCategories(data);
     } catch (error) {
       console.error("Error fetching categories:", error);
     }
@@ -166,14 +163,10 @@ function ResourcesPageImplementation({
 
   async function fetchTags() {
     try {
-      const { data, error } = await supabase
-        .from("tags")
-        .select("id, name, color")
-        .order("name");
-
-      if (!error && data) {
-        setTags(data);
-      }
+      const response = await fetch("/api/tags?sortField=name&sortOrder=asc");
+      if (!response.ok) throw new Error("Failed to fetch tags");
+      const data = await response.json();
+      setTags(data);
     } catch (error) {
       console.error("Error fetching tags:", error);
     }
@@ -181,70 +174,39 @@ function ResourcesPageImplementation({
 
   async function fetchResources(startIndex: number) {
     try {
-      let query = supabase
-        .from("resources")
-        .select(
-          `
-          *,
-          category:categories(id, name),
-          resource_tags(
-            tag_id,
-            tags(id, name, color)
-          )
-        `
-        )
-        .order(sortField, { ascending: sortOrder === "asc" })
-        .range(startIndex, startIndex + RESOURCES_PER_PAGE - 1);
+      const params = new URLSearchParams({
+        sortField,
+        sortOrder,
+        offset: String(startIndex),
+        limit: String(RESOURCES_PER_PAGE),
+      });
 
-      // Filter by category
-      if (selectedCategory && selectedCategory !== "all") {
-        query = query.eq("category_id", selectedCategory);
+      if (selectedCategory !== "all") {
+        params.set("categoryId", selectedCategory);
       }
 
-      // Search query filter
       if (searchQuery) {
-        query = query.or(
-          `title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`
-        );
+        params.set("search", searchQuery);
       }
 
-      // Get initial data without tag filtering
-      const { data: initialData, error } = await query;
-
-      if (error) throw error;
+      const response = await fetch(`/api/resources?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch resources");
+      let data = await response.json();
 
       // Filter by tags if any are selected
-      let filteredData = initialData;
       if (selectedTags.length > 0) {
-        filteredData = initialData?.filter((resource) => {
-          const resourceTagIds =
-            resource.resource_tags?.map(
-              (rt: { tag_id: string }) => rt.tag_id
-            ) || [];
-
-          // Only keep resources that have ALL selected tags
+        data = data.filter((resource: Resource) => {
+          const resourceTagIds = resource.tags?.map((t) => t.id) || [];
           return selectedTags.every((tag) => resourceTagIds.includes(tag.id));
         });
       }
 
-      // Transform the data to match the Resource interface
-      const transformedData =
-        filteredData?.map((resource) => {
-          return {
-            ...resource,
-            tags: (resource.resource_tags?.map(
-              (rt: { tags: { id: string; name: string; color: string } }) =>
-                rt.tags
-            ) || []) as { id: string; name: string; color: string }[],
-          } as Resource;
-        }) || [];
-
       if (startIndex === 0) {
-        setResources(transformedData);
+        setResources(data);
       } else {
-        setResources((prev) => [...prev, ...transformedData]);
+        setResources((prev) => [...prev, ...data]);
       }
-      setHasMore(filteredData.length === RESOURCES_PER_PAGE);
+      setHasMore(data.length === RESOURCES_PER_PAGE);
     } catch (error) {
       console.error("Error fetching resources:", error);
     } finally {
@@ -259,7 +221,7 @@ function ResourcesPageImplementation({
     await fetchResources(resources.length);
   }
 
-  const updateResourceUrl = (tag: Tag | null = null) => {
+  const updateResourceUrl = (tag: TagType | null = null) => {
     // Create a URL object with the current location
     const url = new URL(window.location.href);
 
@@ -275,7 +237,7 @@ function ResourcesPageImplementation({
     window.history.pushState({}, "", url.toString());
   };
 
-  const handleTagSelection = (tag: Tag) => {
+  const handleTagSelection = (tag: TagType) => {
     if (!selectedTags.some((t) => t.id === tag.id)) {
       const newSelectedTags = [...selectedTags, tag];
       setSelectedTags(newSelectedTags);
@@ -390,7 +352,7 @@ function ResourcesPageImplementation({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="title">Title</SelectItem>
-                <SelectItem value="created_at">Date Added</SelectItem>
+                <SelectItem value="createdAt">Date Added</SelectItem>
               </SelectContent>
             </Select>
 

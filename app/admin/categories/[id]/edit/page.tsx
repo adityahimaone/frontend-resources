@@ -1,30 +1,26 @@
 import { Metadata } from "next";
-import { supabase } from "@/lib/supabase";
+import prisma from "@/lib/prisma";
 import EditCategoryClient from "./EditCategoryClient";
 import { Suspense } from "react";
 import Loading from "./Loading";
 
 type Props = {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
   return {
-    title: `Edit Category ${params.id}`,
+    title: `Edit Category ${id}`,
   };
 }
 
 export async function generateStaticParams() {
   try {
-    const { data: categories } = await supabase
-      .from("categories")
-      .select("id")
-      .throwOnError();
-
-    if (!categories?.length) {
-      return [];
-    }
+    const categories = await prisma.category.findMany({
+      select: { id: true },
+    });
 
     return categories.map((category) => ({
       id: category.id,
@@ -36,13 +32,15 @@ export async function generateStaticParams() {
 }
 
 export default async function Page({ params }: Props) {
-  if (!params.id) {
+  const { id } = await params;
+
+  if (!id) {
     throw new Error("Category ID is required");
   }
 
   return (
     <Suspense fallback={<Loading />}>
-      <EditCategoryClient id={params.id} />
+      <EditCategoryClient id={id} />
     </Suspense>
   );
 }
