@@ -59,29 +59,60 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { title, url, description, categoryId, tagIds } = body;
+    const { title, url, description, categoryId, tagIds, isPublic, isHot, isTrending } = body;
+
+    // Check if user owns this resource or is super admin
+    const existingResource = await prisma.resource.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+    const isOwner = existingResource?.userId === session.user.id;
+
+    if (!isSuperAdmin && !isOwner) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // First, delete existing tag associations
     await prisma.resourceTag.deleteMany({
       where: { resourceId: id },
     });
 
+    // Build update data
+    const updateData: any = {
+      title,
+      url,
+      description,
+      categoryId,
+      tags: tagIds?.length
+        ? {
+            create: tagIds.map((tagId: string) => ({
+              tag: { connect: { id: tagId } },
+            })),
+          }
+        : undefined,
+    };
+
+    // Only allow super admin to update isHot and isTrending
+    if (isSuperAdmin) {
+      if (typeof isHot === "boolean") updateData.isHot = isHot;
+      if (typeof isTrending === "boolean") updateData.isTrending = isTrending;
+    }
+
+    // Handle visibility change
+    if (typeof isPublic === "boolean") {
+      updateData.isPublic = isPublic;
+      // If changing to public and not super admin, set to pending
+      if (isPublic && !isSuperAdmin) {
+        updateData.approvalStatus = "PENDING";
+      }
+    }
+
     // Then update the resource with new tag associations
     const resource = await prisma.resource.update({
       where: { id },
-      data: {
-        title,
-        url,
-        description,
-        categoryId,
-        tags: tagIds?.length
-          ? {
-              create: tagIds.map((tagId: string) => ({
-                tag: { connect: { id: tagId } },
-              })),
-            }
-          : undefined,
-      },
+      data: updateData,
       include: {
         category: true,
         tags: {

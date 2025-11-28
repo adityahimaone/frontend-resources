@@ -170,7 +170,7 @@ export default function Home() {
           <div className="absolute bottom-10 right-10 w-24 h-24 bg-blue-400 border-2 border-black shadow-neo rotate-12 opacity-100 hidden md:block animate-pulse"></div>
           <div className="absolute top-20 right-20 w-12 h-12 bg-green-400 border-2 border-black shadow-neo rotate-45 opacity-100 hidden md:block"></div>
 
-          <div className="relative z-10 container mx-auto px-4 py-28">
+          <div className="relative z-10 container h-full mx-auto px-4 pt-48 pb-28">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -194,7 +194,7 @@ export default function Home() {
                   rotationInterval={2000}
                 />
               </div>
-              <p className="text-xl font-bold max-w-2xl mx-auto mb-8 border-2 border-black p-6 bg-white shadow-neo relative z-20">
+              <p className="text-xl font-bold max-w-2xl mx-auto mb-8 border-2 border-black p-4 bg-white shadow-neo relative z-20">
                 A curated collection of the best frontend development tools,
                 libraries, and inspiration sources to supercharge your web
                 development workflow.

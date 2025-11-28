@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Globe, Lock, Flame, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
 
@@ -32,6 +34,9 @@ interface Resource {
   url: string;
   description: string;
   categoryId: string;
+  isPublic?: boolean;
+  isHot?: boolean;
+  isTrending?: boolean;
 }
 
 interface Category {
@@ -59,6 +64,7 @@ const TAG_COLORS = [
 ];
 
 export default function EditResourceClient({ id }: { id: string }) {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resource, setResource] = useState<Resource | null>(null);
@@ -67,6 +73,8 @@ export default function EditResourceClient({ id }: { id: string }) {
   const [selectedTags, setSelectedTags] = useState<Option[]>([]);
   const router = useRouter();
   const { toast } = useToast();
+
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
   useEffect(() => {
     fetchCategories();
@@ -124,6 +132,9 @@ export default function EditResourceClient({ id }: { id: string }) {
         url: data.url,
         description: data.description,
         categoryId: data.categoryId,
+        isPublic: data.isPublic ?? true,
+        isHot: data.isHot ?? false,
+        isTrending: data.isTrending ?? false,
       });
 
       if (data.tags && Array.isArray(data.tags)) {
@@ -159,6 +170,7 @@ export default function EditResourceClient({ id }: { id: string }) {
         body: JSON.stringify({
           name,
           color: randomColor,
+          isPublic: false, // Create as private so general users can use immediately
         }),
       });
 
@@ -199,6 +211,9 @@ export default function EditResourceClient({ id }: { id: string }) {
           description: resource.description,
           categoryId: resource.categoryId,
           tagIds: selectedTags.map((tag) => tag.value),
+          isPublic: resource.isPublic,
+          isHot: resource.isHot,
+          isTrending: resource.isTrending,
         }),
       });
 
@@ -253,10 +268,15 @@ export default function EditResourceClient({ id }: { id: string }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold mb-4">Edit Resource</h1>
+          <h1 className="text-4xl font-black mb-4">Edit Resource</h1>
           <p className="text-xl text-muted-foreground">
             Update resource details
           </p>
+          {isSuperAdmin && (
+            <span className="inline-block mt-2 px-3 py-1 text-sm font-bold bg-pink-500 text-white border-2 border-black shadow-neo-sm">
+              Super Admin
+            </span>
+          )}
         </motion.div>
       </div>
 
@@ -265,14 +285,14 @@ export default function EditResourceClient({ id }: { id: string }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        <Card>
-          <CardHeader>
-            <CardTitle>Resource Details</CardTitle>
-            <CardDescription>
+        <Card className="border-2 border-black shadow-neo">
+          <CardHeader className="border-b-2 border-black bg-green-100">
+            <CardTitle className="font-black">Resource Details</CardTitle>
+            <CardDescription className="font-medium">
               Edit the details for this resource
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
@@ -328,7 +348,9 @@ export default function EditResourceClient({ id }: { id: string }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="font-bold">
+                  Description
+                </Label>
                 <Textarea
                   id="description"
                   value={resource.description}
@@ -338,7 +360,125 @@ export default function EditResourceClient({ id }: { id: string }) {
                   required
                 />
               </div>
-              <Button type="submit" disabled={saving}>
+
+              {/* Visibility Switch */}
+              <div className="flex items-center justify-between p-4 border-2 border-black bg-gray-50">
+                <div className="flex items-center gap-3">
+                  {resource.isPublic ? (
+                    <Globe className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Lock className="h-5 w-5 text-amber-600" />
+                  )}
+                  <div>
+                    <Label
+                      htmlFor="visibility"
+                      className="font-bold cursor-pointer"
+                    >
+                      {resource.isPublic ? "Public" : "Private"}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {resource.isPublic
+                        ? isSuperAdmin
+                          ? "Visible to everyone"
+                          : "May require approval if changed"
+                        : "Only visible to you"}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="visibility"
+                  checked={resource.isPublic}
+                  onCheckedChange={(checked) =>
+                    setResource({ ...resource, isPublic: checked })
+                  }
+                />
+              </div>
+
+              {/* Super Admin Only: Hot & Trending Labels */}
+              {isSuperAdmin && (
+                <div className="space-y-4 p-4 border-2 border-pink-500 bg-pink-50">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 text-xs font-bold bg-pink-500 text-white border border-black">
+                      SUPER ADMIN ONLY
+                    </span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Resource Labels
+                    </span>
+                  </div>
+
+                  {/* Hot Label Toggle */}
+                  <div className="flex items-center justify-between p-3 bg-white border-2 border-black">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`p-2 rounded ${
+                          resource.isHot ? "bg-orange-500" : "bg-gray-200"
+                        }`}
+                      >
+                        <Flame
+                          className={`h-5 w-5 ${
+                            resource.isHot ? "text-white" : "text-gray-500"
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <Label
+                          htmlFor="isHot"
+                          className="font-bold cursor-pointer"
+                        >
+                          Hot Resource
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Mark this resource as hot/popular
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      id="isHot"
+                      checked={resource.isHot}
+                      onCheckedChange={(checked) =>
+                        setResource({ ...resource, isHot: checked })
+                      }
+                    />
+                  </div>
+
+                  {/* Trending Label Toggle */}
+                  <div className="flex items-center justify-between p-3 bg-white border-2 border-black">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`p-2 rounded ${
+                          resource.isTrending ? "bg-blue-500" : "bg-gray-200"
+                        }`}
+                      >
+                        <TrendingUp
+                          className={`h-5 w-5 ${
+                            resource.isTrending ? "text-white" : "text-gray-500"
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <Label
+                          htmlFor="isTrending"
+                          className="font-bold cursor-pointer"
+                        >
+                          Trending Resource
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Mark this resource as trending
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      id="isTrending"
+                      checked={resource.isTrending}
+                      onCheckedChange={(checked) =>
+                        setResource({ ...resource, isTrending: checked })
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Button type="submit" disabled={saving} className="w-full">
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
             </form>

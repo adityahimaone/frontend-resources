@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Globe, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
 
@@ -45,6 +47,7 @@ const TAG_COLORS = [
 ];
 
 export default function NewResourcePage() {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Option[]>([]);
@@ -53,8 +56,11 @@ export default function NewResourcePage() {
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
   useEffect(() => {
     fetchCategories();
@@ -112,6 +118,7 @@ export default function NewResourcePage() {
         body: JSON.stringify({
           name,
           color: randomColor,
+          isPublic: false, // Create as private so general users can use immediately
         }),
       });
 
@@ -150,21 +157,28 @@ export default function NewResourcePage() {
           description,
           categoryId,
           tagIds: selectedTags.map((tag) => tag.value),
+          isPublic,
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to create resource");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create resource");
+      }
 
       toast({
         title: "Success",
-        description: "Resource created successfully",
+        description:
+          isPublic && !isSuperAdmin
+            ? "Resource created and pending approval"
+            : "Resource created successfully",
       });
 
       router.push("/admin/resources");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to create resource",
+        description: error.message || "Failed to create resource",
         variant: "destructive",
       });
     } finally {
@@ -186,7 +200,7 @@ export default function NewResourcePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold mb-4">New Resource</h1>
+          <h1 className="text-4xl font-black mb-4">New Resource</h1>
           <p className="text-xl text-muted-foreground">
             Add a new resource to the collection
           </p>
@@ -198,17 +212,19 @@ export default function NewResourcePage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        <Card>
-          <CardHeader>
-            <CardTitle>Resource Details</CardTitle>
-            <CardDescription>
+        <Card className="border-2 border-black shadow-neo">
+          <CardHeader className="border-b-2 border-black bg-green-100">
+            <CardTitle className="font-black">Resource Details</CardTitle>
+            <CardDescription className="font-medium">
               Enter the details for the new resource
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
+                <Label htmlFor="title" className="font-bold">
+                  Title
+                </Label>
                 <Input
                   id="title"
                   value={title}
@@ -217,7 +233,9 @@ export default function NewResourcePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="url">URL</Label>
+                <Label htmlFor="url" className="font-bold">
+                  URL
+                </Label>
                 <Input
                   id="url"
                   type="url"
@@ -227,7 +245,9 @@ export default function NewResourcePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category" className="font-bold">
+                  Category
+                </Label>
                 <Select
                   value={categoryId}
                   onValueChange={(value) => setCategoryId(value)}
@@ -246,7 +266,7 @@ export default function NewResourcePage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Tags</Label>
+                <Label className="font-bold">Tags</Label>
                 <MultiSelect
                   options={tags}
                   selected={selectedTags}
@@ -256,7 +276,9 @@ export default function NewResourcePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="font-bold">
+                  Description
+                </Label>
                 <Textarea
                   id="description"
                   value={description}
@@ -264,7 +286,39 @@ export default function NewResourcePage() {
                   required
                 />
               </div>
-              <Button type="submit" disabled={loading}>
+
+              {/* Visibility Switch */}
+              <div className="flex items-center justify-between p-4 border-2 border-black bg-gray-50">
+                <div className="flex items-center gap-3">
+                  {isPublic ? (
+                    <Globe className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Lock className="h-5 w-5 text-amber-600" />
+                  )}
+                  <div>
+                    <Label
+                      htmlFor="visibility"
+                      className="font-bold cursor-pointer"
+                    >
+                      {isPublic ? "Public" : "Private"}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {isPublic
+                        ? isSuperAdmin
+                          ? "Visible to everyone immediately"
+                          : "Will be visible after approval"
+                        : "Only visible to you"}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="visibility"
+                  checked={isPublic}
+                  onCheckedChange={setIsPublic}
+                />
+              </div>
+
+              <Button type="submit" disabled={loading} className="w-full">
                 {loading ? "Creating..." : "Create Resource"}
               </Button>
             </form>

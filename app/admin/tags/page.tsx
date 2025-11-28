@@ -10,6 +10,11 @@ import {
   Plus,
   Search,
   Trash2,
+  Globe,
+  Lock,
+  Clock,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -38,6 +43,8 @@ interface Tag {
   name: string;
   slug: string;
   color: string;
+  isPublic: boolean;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
 }
 
@@ -185,6 +192,8 @@ export default function TagsPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Slug</TableHead>
                 <TableHead>Preview</TableHead>
+                <TableHead>Visibility</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -195,6 +204,43 @@ export default function TagsPage() {
                   <TableCell>{tag.slug}</TableCell>
                   <TableCell>
                     <Badge className={tag.color}>{tag.name}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {tag.isPublic ? (
+                        <>
+                          <Globe className="h-4 w-4 text-green-600" />
+                          <span className="text-sm text-green-600">Public</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="h-4 w-4 text-amber-600" />
+                          <span className="text-sm text-amber-600">
+                            Private
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {tag.approvalStatus === "APPROVED" && (
+                      <Badge className="bg-green-500 text-white border-2 border-black shadow-neo-sm">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Approved
+                      </Badge>
+                    )}
+                    {tag.approvalStatus === "PENDING" && (
+                      <Badge className="bg-amber-500 text-white border-2 border-black shadow-neo-sm">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Pending
+                      </Badge>
+                    )}
+                    {tag.approvalStatus === "REJECTED" && (
+                      <Badge className="bg-red-500 text-white border-2 border-black shadow-neo-sm">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Rejected
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

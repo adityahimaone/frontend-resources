@@ -6,11 +6,44 @@ import { authOptions } from "@/auth";
 // GET /api/tags - Get all tags
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const { searchParams } = new URL(request.url);
     const sortField = searchParams.get("sortField") || "name";
     const sortOrder = searchParams.get("sortOrder") || "asc";
+    const showPrivate = searchParams.get("showPrivate");
+    const showPending = searchParams.get("showPending");
+
+    const where: any = {};
+
+    // Filter by visibility and approval status
+    if (session?.user) {
+      if (showPrivate === "true") {
+        where.userId = session.user.id;
+        where.isPublic = false;
+      } else if (showPending === "true" && session.user.role === "SUPER_ADMIN") {
+        where.approvalStatus = "PENDING";
+        where.isPublic = true;
+      } else {
+        where.OR = [
+          { isPublic: true, approvalStatus: "APPROVED" },
+          { userId: session.user.id },
+        ];
+      }
+    } else {
+      where.isPublic = true;
+      where.approvalStatus = "APPROVED";
+    }
 
     const tags = await prisma.tag.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
       orderBy: {
         [sortField === "created_at" ? "createdAt" : sortField]: sortOrder,
       },
@@ -35,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, color } = body;
+    const { name, color, isPublic = true } = body;
 
     // Generate slug from name
     const slug = name
@@ -43,11 +76,35 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-zA-Z0-9]+/g, "-")
       .replace(/(^-|-$)+/g, "");
 
+    // Check for duplicates
+    const existingTag = await prisma.tag.findFirst({
+      where: {
+        OR: [
+          { name, userId: session.user.id },
+          { slug, userId: session.user.id },
+        ],
+      },
+    });
+
+    if (existingTag) {
+      return NextResponse.json(
+        { error: "A tag with this name or slug already exists" },
+        { status: 400 }
+      );
+    }
+
+    // Determine approval status
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+    const approvalStatus = isPublic && !isSuperAdmin ? "PENDING" : "APPROVED";
+
     const tag = await prisma.tag.create({
       data: {
         name,
         slug,
         color,
+        userId: session.user.id,
+        isPublic,
+        approvalStatus,
       },
     });
 

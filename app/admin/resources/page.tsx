@@ -11,6 +11,11 @@ import {
   Plus,
   Search,
   Trash2,
+  Globe,
+  Lock,
+  Clock,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -46,6 +51,8 @@ interface Resource {
   title: string;
   url: string;
   description: string;
+  isPublic: boolean;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
   category: {
     id: string;
     name: string;
@@ -263,7 +270,8 @@ export default function AdminResourcesPage() {
                 <TableHead>Title</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Tags</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead>Visibility</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>URL</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
@@ -284,7 +292,43 @@ export default function AdminResourcesPage() {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell>{resource.description}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {resource.isPublic ? (
+                        <>
+                          <Globe className="h-4 w-4 text-green-600" />
+                          <span className="text-sm text-green-600">Public</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="h-4 w-4 text-amber-600" />
+                          <span className="text-sm text-amber-600">
+                            Private
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {resource.approvalStatus === "APPROVED" && (
+                      <Badge className="bg-green-500 text-white border-2 border-black shadow-neo-sm">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Approved
+                      </Badge>
+                    )}
+                    {resource.approvalStatus === "PENDING" && (
+                      <Badge className="bg-amber-500 text-white border-2 border-black shadow-neo-sm">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Pending
+                      </Badge>
+                    )}
+                    {resource.approvalStatus === "REJECTED" && (
+                      <Badge className="bg-red-500 text-white border-2 border-black shadow-neo-sm">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Rejected
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Link
                       href={resource.url}

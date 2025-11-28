@@ -11,6 +11,8 @@ import {
   Search,
   Tag,
   X,
+  Flame,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -54,6 +56,9 @@ interface Resource {
     color: string;
   }[];
   createdAt: string;
+  isPublic?: boolean;
+  isHot?: boolean;
+  isTrending?: boolean;
 }
 
 interface Category {
@@ -69,6 +74,7 @@ interface TagType {
 
 type SortField = "title" | "createdAt";
 type SortOrder = "asc" | "desc";
+type FilterType = "all" | "hot" | "trending";
 
 const RESOURCES_PER_PAGE = 9;
 
@@ -99,6 +105,7 @@ function ResourcesPageImplementation({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [filterType, setFilterType] = useState<FilterType>("all");
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -123,7 +130,14 @@ function ResourcesPageImplementation({
     setResources([]);
     setHasMore(true);
     fetchResources(0);
-  }, [selectedCategory, selectedTags, sortField, sortOrder, searchQuery]);
+  }, [
+    selectedCategory,
+    selectedTags,
+    sortField,
+    sortOrder,
+    searchQuery,
+    filterType,
+  ]);
 
   useEffect(() => {
     if (loadingMore || !hasMore) return;
@@ -189,6 +203,12 @@ function ResourcesPageImplementation({
         params.set("search", searchQuery);
       }
 
+      if (filterType === "hot") {
+        params.set("isHot", "true");
+      } else if (filterType === "trending") {
+        params.set("isTrending", "true");
+      }
+
       const response = await fetch(`/api/resources?${params}`);
       if (!response.ok) throw new Error("Failed to fetch resources");
       let data = await response.json();
@@ -220,6 +240,16 @@ function ResourcesPageImplementation({
     setLoadingMore(true);
     await fetchResources(resources.length);
   }
+
+  const trackClick = async (resourceId: string) => {
+    try {
+      await fetch(`/api/resources/${resourceId}/click`, {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Error tracking click:", error);
+    }
+  };
 
   const updateResourceUrl = (tag: TagType | null = null) => {
     // Create a URL object with the current location
@@ -300,6 +330,44 @@ function ResourcesPageImplementation({
             resources
           </p>
         </motion.div>
+      </div>
+
+      {/* Filter Type Buttons */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Button
+          variant={filterType === "all" ? "default" : "outline"}
+          onClick={() => setFilterType("all")}
+          className={cn(
+            "border-2 border-black font-bold",
+            filterType === "all" && "bg-black text-white"
+          )}
+        >
+          All Resources
+        </Button>
+        <Button
+          variant={filterType === "hot" ? "default" : "outline"}
+          onClick={() => setFilterType("hot")}
+          className={cn(
+            "border-2 border-black font-bold",
+            filterType === "hot" &&
+              "bg-orange-500 text-white hover:bg-orange-600"
+          )}
+        >
+          <Flame className="mr-2 h-4 w-4" />
+          Hot
+        </Button>
+        <Button
+          variant={filterType === "trending" ? "default" : "outline"}
+          onClick={() => setFilterType("trending")}
+          className={cn(
+            "border-2 border-black font-bold",
+            filterType === "trending" &&
+              "bg-blue-500 text-white hover:bg-blue-600"
+          )}
+        >
+          <TrendingUp className="mr-2 h-4 w-4" />
+          Trending
+        </Button>
       </div>
 
       {/* Filters Section */}
@@ -422,6 +490,10 @@ function ResourcesPageImplementation({
               link={resource.url}
               isExternal
               tags={resource.tags}
+              isPublic={resource.isPublic}
+              isHot={resource.isHot}
+              isTrending={resource.isTrending}
+              onResourceClick={() => trackClick(resource.id)}
             />
           </motion.div>
         ))}
@@ -438,8 +510,18 @@ function ResourcesPageImplementation({
           </p>
           {(selectedTags.length > 0 ||
             selectedCategory !== "all" ||
-            searchQuery) && (
-            <Button variant="outline" onClick={clearAllTags} className="mt-4">
+            searchQuery ||
+            filterType !== "all") && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                clearAllTags();
+                setSelectedCategory("all");
+                setSearchQuery("");
+                setFilterType("all");
+              }}
+              className="mt-4"
+            >
               Clear all filters
             </Button>
           )}
