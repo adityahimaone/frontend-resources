@@ -90,7 +90,17 @@ export async function GET(request: NextRequest) {
         where: filter,
         include: {
           category: true,
-          tags: true,
+          tags: {
+            select: {
+              tag: {
+                select: {
+                  name: true,
+                  slug: true,
+                  color: true,
+                },
+              },
+            },
+          },
           user: {
             select: {
               id: true,

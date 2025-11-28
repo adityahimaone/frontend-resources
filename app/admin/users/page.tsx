@@ -33,7 +33,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Users, Shield, UserCog, Trash2, Loader2 } from "lucide-react";
+import {
+  Users,
+  Shield,
+  UserCog,
+  Trash2,
+  Loader2,
+  ArrowLeft,
+} from "lucide-react";
+import Link from "next/link";
 
 interface User {
   id: string;
@@ -137,170 +145,184 @@ export default function AdminUsersPage() {
   const generalUsers = users.filter((u) => u.role === "GENERAL");
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black">User Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage user roles and permissions
-          </p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="">
+        <Button variant="ghost" asChild className="mb-6">
+          <Link href="/admin">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Link>
+        </Button>
+      </div>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-black">User Management</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage user roles and permissions
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-2 border-black shadow-neo bg-yellow-100">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase">
-              Total Users
-            </CardTitle>
-            <Users className="h-5 w-5" />
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="border-2 border-black shadow-neo bg-yellow-100">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-bold uppercase">
+                Total Users
+              </CardTitle>
+              <Users className="h-5 w-5" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black">{users.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-black shadow-neo bg-pink-100">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-bold uppercase">
+                Super Admins
+              </CardTitle>
+              <Shield className="h-5 w-5" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black">{superAdmins.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-black shadow-neo bg-blue-100">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-bold uppercase">
+                General Users
+              </CardTitle>
+              <UserCog className="h-5 w-5" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black">{generalUsers.length}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Users Table */}
+        <Card className="border-2 border-black shadow-neo">
+          <CardHeader className="border-b-2 border-black bg-green-100">
+            <CardTitle className="font-black">All Users</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black">{users.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-black shadow-neo bg-pink-100">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase">
-              Super Admins
-            </CardTitle>
-            <Shield className="h-5 w-5" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black">{superAdmins.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-black shadow-neo bg-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase">
-              General Users
-            </CardTitle>
-            <UserCog className="h-5 w-5" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black">{generalUsers.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Users Table */}
-      <Card className="border-2 border-black shadow-neo">
-        <CardHeader className="border-b-2 border-black bg-green-100">
-          <CardTitle className="font-black">All Users</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-bold">Name</TableHead>
-                <TableHead className="font-bold">Email</TableHead>
-                <TableHead className="font-bold">Role</TableHead>
-                <TableHead className="font-bold">Content</TableHead>
-                <TableHead className="font-bold">Joined</TableHead>
-                <TableHead className="font-bold text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    {user.name || "—"}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        user.role === "SUPER_ADMIN" ? "default" : "secondary"
-                      }
-                      className={
-                        user.role === "SUPER_ADMIN"
-                          ? "bg-pink-500 hover:bg-pink-600"
-                          : ""
-                      }
-                    >
-                      {user.role === "SUPER_ADMIN" ? "Super Admin" : "General"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {user._count.resources} resources
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {user._count.categories} categories
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {user._count.tags} tags
-                      </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Select
-                        value={user.role}
-                        onValueChange={(value) =>
-                          handleRoleChange(user.id, value)
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-bold">Name</TableHead>
+                  <TableHead className="font-bold">Email</TableHead>
+                  <TableHead className="font-bold">Role</TableHead>
+                  <TableHead className="font-bold">Content</TableHead>
+                  <TableHead className="font-bold">Joined</TableHead>
+                  <TableHead className="font-bold text-right">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      {user.name || "—"}
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          user.role === "SUPER_ADMIN" ? "default" : "secondary"
                         }
-                        disabled={
-                          updating === user.id || user.id === session.user.id
+                        className={
+                          user.role === "SUPER_ADMIN"
+                            ? "bg-pink-500 hover:bg-pink-600"
+                            : ""
                         }
                       >
-                        <SelectTrigger className="w-[140px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="GENERAL">General</SelectItem>
-                          <SelectItem value="SUPER_ADMIN">
-                            Super Admin
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                        {user.role === "SUPER_ADMIN"
+                          ? "Super Admin"
+                          : "General"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {user._count.resources} resources
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {user._count.categories} categories
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {user._count.tags} tags
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Select
+                          value={user.role}
+                          onValueChange={(value) =>
+                            handleRoleChange(user.id, value)
+                          }
+                          disabled={
+                            updating === user.id || user.id === session.user.id
+                          }
+                        >
+                          <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="GENERAL">General</SelectItem>
+                            <SelectItem value="SUPER_ADMIN">
+                              Super Admin
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            disabled={user.id === session.user.id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete User</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this user? This
-                              action cannot be undone. All content created by
-                              this user will also be deleted.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="bg-red-500 hover:bg-red-600"
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              disabled={user.id === session.user.id}
                             >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete User</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this user? This
+                                action cannot be undone. All content created by
+                                this user will also be deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="bg-red-500 hover:bg-red-600"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface PendingResource {
   id: string;
@@ -28,7 +29,13 @@ interface PendingResource {
   url: string;
   description: string | null;
   category: { name: string } | null;
-  tags: { name: string; color: string | null }[];
+  tags: {
+    tag: {
+      id: string;
+      name: string;
+      color: string | null;
+    };
+  }[];
   user: { name: string | null; email: string };
   createdAt: string;
 }
@@ -161,618 +168,645 @@ export default function AdminApprovalsPage() {
   const totalRejected =
     rejectedResources.length + rejectedCategories.length + rejectedTags.length;
 
+  console.log(resources, "resources");
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <Button variant="ghost" asChild className="mb-4">
+    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
+      <div className="">
+        <Button variant="ghost" asChild className="mb-4 sm:mb-6">
           <Link href="/admin">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Link>
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-black">Content Approvals</h1>
-            <p className="text-muted-foreground mt-1">
-              Review and approve pending public content
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Badge
-              variant="outline"
-              className="text-lg px-4 py-2 border-2 border-black bg-yellow-100"
-            >
-              <Clock className="mr-2 h-4 w-4" />
-              {totalPending} Pending
-            </Badge>
-            <Badge
-              variant="outline"
-              className="text-lg px-4 py-2 border-2 border-black bg-red-100"
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              {totalRejected} Rejected
-            </Badge>
+      </div>
+      <div className="space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black">
+                Content Approvals
+              </h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+                Review and approve pending public content
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Badge
+                variant="outline"
+                className="text-base sm:text-lg px-3 sm:px-4 py-2 border-2 border-black bg-yellow-100"
+              >
+                <Clock className="mr-2 h-4 w-4" />
+                {totalPending} Pending
+              </Badge>
+              <Badge
+                variant="outline"
+                className="text-base sm:text-lg px-3 sm:px-4 py-2 border-2 border-black bg-red-100"
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                {totalRejected} Rejected
+              </Badge>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Tabs: Pending vs Rejected */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => setActiveTab(v as "pending" | "rejected")}
-        className="space-y-4"
-      >
-        <TabsList className="border-2 border-black p-1 bg-white">
-          <TabsTrigger
-            value="pending"
-            className="data-[state=active]:bg-yellow-200 font-bold"
-          >
-            <Clock className="mr-2 h-4 w-4" />
-            Pending ({totalPending})
-          </TabsTrigger>
-          <TabsTrigger
-            value="rejected"
-            className="data-[state=active]:bg-red-200 font-bold"
-          >
-            <XCircle className="mr-2 h-4 w-4" />
-            Rejected ({totalRejected})
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Pending Tab Content */}
-        <TabsContent value="pending" className="space-y-4">
-          <Tabs defaultValue="resources" className="space-y-4">
-            <TabsList className="border-2 border-black p-1 bg-white">
+        {/* Main Tabs: Pending vs Rejected */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as "pending" | "rejected")}
+          className="space-y-3 sm:space-y-4"
+        >
+          <div className="overflow-x-auto">
+            <TabsList className="border-2 border-black p-1 bg-white sm:w-fit w-full flex-nowrap">
               <TabsTrigger
-                value="resources"
-                className="data-[state=active]:bg-green-200 font-bold"
+                value="pending"
+                className="data-[state=active]:bg-yellow-200 font-bold"
               >
-                <Link2 className="mr-2 h-4 w-4" />
-                Resources ({resources.length})
+                <Clock className="mr-2 h-4 w-4" />
+                Pending ({totalPending})
               </TabsTrigger>
               <TabsTrigger
-                value="categories"
-                className="data-[state=active]:bg-blue-200 font-bold"
+                value="rejected"
+                className="data-[state=active]:bg-red-200 font-bold"
               >
-                <FolderKanban className="mr-2 h-4 w-4" />
-                Categories ({categories.length})
-              </TabsTrigger>
-              <TabsTrigger
-                value="tags"
-                className="data-[state=active]:bg-purple-200 font-bold"
-              >
-                <Tag className="mr-2 h-4 w-4" />
-                Tags ({tags.length})
+                <XCircle className="mr-2 h-4 w-4" />
+                Rejected ({totalRejected})
               </TabsTrigger>
             </TabsList>
+          </div>
 
-            {/* Resources Tab */}
-            <TabsContent value="resources" className="space-y-4">
-              {resources.length === 0 ? (
-                <Card className="border-2 border-black shadow-neo bg-green-50">
-                  <CardContent className="p-8 text-center">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600" />
-                    <p className="font-bold text-lg">All caught up!</p>
-                    <p className="text-muted-foreground">
-                      No pending resources to review
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                resources.map((resource) => (
-                  <Card
-                    key={resource.id}
-                    className="border-2 border-black shadow-neo"
+          {/* Pending Tab Content */}
+          <TabsContent value="pending" className="space-y-4">
+            <Tabs defaultValue="resources" className="space-y-4">
+              <div className="overflow-x-auto">
+                <TabsList className="border-2 border-black p-1 bg-white w-full sm:w-fit flex-nowrap">
+                  <TabsTrigger
+                    value="resources"
+                    className="data-[state=active]:bg-green-200 font-bold"
                   >
-                    <CardHeader className="border-b-2 border-black bg-green-100">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="font-black text-xl flex items-center gap-2">
-                            <Globe className="h-5 w-5" />
-                            {resource.title}
-                          </CardTitle>
-                          <a
-                            href={resource.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline text-sm"
-                          >
-                            {resource.url}
-                          </a>
-                        </div>
-                        <Badge variant="secondary">
-                          {resource.category?.name || "Uncategorized"}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
-                      {resource.description && (
-                        <p className="text-muted-foreground">
-                          {resource.description}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-2">
-                        {resource.tags.map((tag) => (
-                          <Badge
-                            key={tag.name}
-                            style={{
-                              backgroundColor: tag.color || undefined,
-                            }}
-                          >
-                            {tag.name}
+                    <Link2 className="mr-2 h-4 w-4" />
+                    Resources ({resources.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="categories"
+                    className="data-[state=active]:bg-blue-200 font-bold"
+                  >
+                    <FolderKanban className="mr-2 h-4 w-4" />
+                    Categories ({categories.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="tags"
+                    className="data-[state=active]:bg-purple-200 font-bold"
+                  >
+                    <Tag className="mr-2 h-4 w-4" />
+                    Tags ({tags.length})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* Resources Tab */}
+              <TabsContent value="resources" className="space-y-4">
+                {resources.length === 0 ? (
+                  <Card className="border-2 border-black shadow-neo bg-green-50">
+                    <CardContent className="p-8 text-center">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600" />
+                      <p className="font-bold text-lg">All caught up!</p>
+                      <p className="text-muted-foreground">
+                        No pending resources to review
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  resources.map((resource) => (
+                    <Card
+                      key={resource.id}
+                      className="border-2 border-black shadow-neo mb-2 sm:mb-0"
+                    >
+                      <CardHeader className="border-b-2 border-black bg-green-100 px-3 py-2 sm:px-6 sm:py-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
+                          <div>
+                            <CardTitle className="font-black text-xl flex items-center gap-2">
+                              <Globe className="h-5 w-5" />
+                              {resource.title}
+                            </CardTitle>
+                            <a
+                              href={resource.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-sm"
+                            >
+                              {resource.url}
+                            </a>
+                          </div>
+                          <Badge variant="secondary">
+                            {resource.category?.name || "Uncategorized"}
                           </Badge>
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t-2 border-dashed border-black">
-                        <div className="text-sm text-muted-foreground">
-                          <span className="font-medium">Submitted by:</span>{" "}
-                          {resource.user.name || resource.user.email} •{" "}
-                          {new Date(resource.createdAt).toLocaleDateString()}
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() =>
-                              handleApproval(
-                                "resource",
-                                resource.id,
-                                "APPROVED"
-                              )
-                            }
-                            disabled={processing === resource.id}
-                            className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
-                          >
-                            {processing === resource.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                            )}
-                            Approve
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() =>
-                              handleApproval(
-                                "resource",
-                                resource.id,
-                                "REJECTED"
-                              )
-                            }
-                            disabled={processing === resource.id}
-                            className="border-2 border-black shadow-neo-sm"
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
-
-            {/* Categories Tab */}
-            <TabsContent value="categories" className="space-y-4">
-              {categories.length === 0 ? (
-                <Card className="border-2 border-black shadow-neo bg-blue-50">
-                  <CardContent className="p-8 text-center">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-blue-600" />
-                    <p className="font-bold text-lg">All caught up!</p>
-                    <p className="text-muted-foreground">
-                      No pending categories to review
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                categories.map((category) => (
-                  <Card
-                    key={category.id}
-                    className="border-2 border-black shadow-neo"
-                  >
-                    <CardHeader className="border-b-2 border-black bg-blue-100">
-                      <CardTitle className="font-black text-xl flex items-center gap-2">
-                        <FolderKanban className="h-5 w-5" />
-                        {category.name}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Slug: {category.slug}
-                      </p>
-                    </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
-                      {category.description && (
-                        <p className="text-muted-foreground">
-                          {category.description}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between pt-2 border-t-2 border-dashed border-black">
-                        <div className="text-sm text-muted-foreground">
-                          <span className="font-medium">Submitted by:</span>{" "}
-                          {category.user.name || category.user.email} •{" "}
-                          {new Date(category.createdAt).toLocaleDateString()}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() =>
-                              handleApproval(
-                                "category",
-                                category.id,
-                                "APPROVED"
-                              )
-                            }
-                            disabled={processing === category.id}
-                            className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
-                          >
-                            {processing === category.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                            )}
-                            Approve
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() =>
-                              handleApproval(
-                                "category",
-                                category.id,
-                                "REJECTED"
-                              )
-                            }
-                            disabled={processing === category.id}
-                            className="border-2 border-black shadow-neo-sm"
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
-
-            {/* Tags Tab */}
-            <TabsContent value="tags" className="space-y-4">
-              {tags.length === 0 ? (
-                <Card className="border-2 border-black shadow-neo bg-purple-50">
-                  <CardContent className="p-8 text-center">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-purple-600" />
-                    <p className="font-bold text-lg">All caught up!</p>
-                    <p className="text-muted-foreground">
-                      No pending tags to review
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                tags.map((tag) => (
-                  <Card
-                    key={tag.id}
-                    className="border-2 border-black shadow-neo"
-                  >
-                    <CardHeader className="border-b-2 border-black bg-purple-100">
-                      <CardTitle className="font-black text-xl flex items-center gap-2">
-                        <Tag className="h-5 w-5" />
-                        {tag.name}
-                        {tag.color && (
-                          <span
-                            className="w-6 h-6 rounded border-2 border-black"
-                            style={{ backgroundColor: tag.color }}
-                          />
+                      </CardHeader>
+                      <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+                        {resource.description && (
+                          <p className="text-muted-foreground">
+                            {resource.description}
+                          </p>
                         )}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Slug: {tag.slug}
+                        <div className="flex flex-wrap gap-1 sm:gap-2">
+                          {resource.tags.map((tag) => (
+                            <Badge
+                              key={tag?.tag?.name}
+                              className={cn(
+                                `${tag?.tag?.color} hover:bg-accent`
+                              )}
+                              // style={{
+                              //   backgroundColor: tag?.tag?.color || undefined,
+                              // }}
+                            >
+                              {tag?.tag?.name}
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t-2 border-dashed border-black gap-2 sm:gap-0">
+                          <div className="text-sm text-muted-foreground">
+                            <span className="font-medium">Submitted by:</span>{" "}
+                            {resource.user.name || resource.user.email} •{" "}
+                            {new Date(resource.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              onClick={() =>
+                                handleApproval(
+                                  "resource",
+                                  resource.id,
+                                  "APPROVED"
+                                )
+                              }
+                              disabled={processing === resource.id}
+                              className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
+                            >
+                              {processing === resource.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                              )}
+                              Approve
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() =>
+                                handleApproval(
+                                  "resource",
+                                  resource.id,
+                                  "REJECTED"
+                                )
+                              }
+                              disabled={processing === resource.id}
+                              className="border-2 border-black shadow-neo-sm"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
+              {/* Categories Tab */}
+              <TabsContent value="categories" className="space-y-4">
+                {categories.length === 0 ? (
+                  <Card className="border-2 border-black shadow-neo bg-blue-50">
+                    <CardContent className="p-8 text-center">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 text-blue-600" />
+                      <p className="font-bold text-lg">All caught up!</p>
+                      <p className="text-muted-foreground">
+                        No pending categories to review
                       </p>
-                    </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
-                      <div className="flex items-center justify-between pt-2 border-t-2 border-dashed border-black">
-                        <div className="text-sm text-muted-foreground">
-                          <span className="font-medium">Submitted by:</span>{" "}
-                          {tag.user.name || tag.user.email} •{" "}
-                          {new Date(tag.createdAt).toLocaleDateString()}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() =>
-                              handleApproval("tag", tag.id, "APPROVED")
-                            }
-                            disabled={processing === tag.id}
-                            className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
-                          >
-                            {processing === tag.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                            )}
-                            Approve
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() =>
-                              handleApproval("tag", tag.id, "REJECTED")
-                            }
-                            disabled={processing === tag.id}
-                            className="border-2 border-black shadow-neo-sm"
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
                     </CardContent>
                   </Card>
-                ))
-              )}
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-
-        {/* Rejected Tab Content */}
-        <TabsContent value="rejected" className="space-y-4">
-          <Tabs defaultValue="resources" className="space-y-4">
-            <TabsList className="border-2 border-black p-1 bg-white">
-              <TabsTrigger
-                value="resources"
-                className="data-[state=active]:bg-green-200 font-bold"
-              >
-                <Link2 className="mr-2 h-4 w-4" />
-                Resources ({rejectedResources.length})
-              </TabsTrigger>
-              <TabsTrigger
-                value="categories"
-                className="data-[state=active]:bg-blue-200 font-bold"
-              >
-                <FolderKanban className="mr-2 h-4 w-4" />
-                Categories ({rejectedCategories.length})
-              </TabsTrigger>
-              <TabsTrigger
-                value="tags"
-                className="data-[state=active]:bg-purple-200 font-bold"
-              >
-                <Tag className="mr-2 h-4 w-4" />
-                Tags ({rejectedTags.length})
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Rejected Resources Tab */}
-            <TabsContent value="resources" className="space-y-4">
-              {rejectedResources.length === 0 ? (
-                <Card className="border-2 border-black shadow-neo bg-green-50">
-                  <CardContent className="p-8 text-center">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600" />
-                    <p className="font-bold text-lg">No rejected resources</p>
-                    <p className="text-muted-foreground">
-                      All resources have been processed
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                rejectedResources.map((resource) => (
-                  <Card
-                    key={resource.id}
-                    className="border-2 border-black shadow-neo border-l-4 border-l-red-500"
-                  >
-                    <CardHeader className="border-b-2 border-black bg-red-50">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="font-black text-xl flex items-center gap-2">
-                            <XCircle className="h-5 w-5 text-red-500" />
-                            {resource.title}
-                          </CardTitle>
-                          <a
-                            href={resource.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline text-sm"
-                          >
-                            {resource.url}
-                          </a>
-                        </div>
-                        <Badge variant="destructive">REJECTED</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
-                      {resource.description && (
-                        <p className="text-muted-foreground">
-                          {resource.description}
+                ) : (
+                  categories.map((category) => (
+                    <Card
+                      key={category.id}
+                      className="border-2 border-black shadow-neo"
+                    >
+                      <CardHeader className="border-b-2 border-black bg-blue-100 px-3 py-2 sm:px-6 sm:py-4">
+                        <CardTitle className="font-black text-xl flex items-center gap-2">
+                          <FolderKanban className="h-5 w-5" />
+                          {category.name}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Slug: {category.slug}
                         </p>
-                      )}
-                      <div className="flex items-center justify-between pt-2 border-t-2 border-dashed border-black">
-                        <div className="text-sm text-muted-foreground">
-                          <span className="font-medium">Submitted by:</span>{" "}
-                          {resource.user.name || resource.user.email} •{" "}
-                          {new Date(resource.createdAt).toLocaleDateString()}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() =>
-                              handleApproval("resource", resource.id, "PENDING")
-                            }
-                            disabled={processing === resource.id}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-black border-2 border-black shadow-neo-sm"
-                          >
-                            {processing === resource.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <RotateCcw className="mr-2 h-4 w-4" />
-                            )}
-                            Revert to Pending
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              handleApproval(
-                                "resource",
-                                resource.id,
-                                "APPROVED"
-                              )
-                            }
-                            disabled={processing === resource.id}
-                            className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Approve
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
-
-            {/* Rejected Categories Tab */}
-            <TabsContent value="categories" className="space-y-4">
-              {rejectedCategories.length === 0 ? (
-                <Card className="border-2 border-black shadow-neo bg-blue-50">
-                  <CardContent className="p-8 text-center">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-blue-600" />
-                    <p className="font-bold text-lg">No rejected categories</p>
-                    <p className="text-muted-foreground">
-                      All categories have been processed
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                rejectedCategories.map((category) => (
-                  <Card
-                    key={category.id}
-                    className="border-2 border-black shadow-neo border-l-4 border-l-red-500"
-                  >
-                    <CardHeader className="border-b-2 border-black bg-red-50">
-                      <CardTitle className="font-black text-xl flex items-center gap-2">
-                        <XCircle className="h-5 w-5 text-red-500" />
-                        {category.name}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Slug: {category.slug}
-                      </p>
-                    </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
-                      {category.description && (
-                        <p className="text-muted-foreground">
-                          {category.description}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between pt-2 border-t-2 border-dashed border-black">
-                        <div className="text-sm text-muted-foreground">
-                          <span className="font-medium">Submitted by:</span>{" "}
-                          {category.user.name || category.user.email} •{" "}
-                          {new Date(category.createdAt).toLocaleDateString()}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() =>
-                              handleApproval("category", category.id, "PENDING")
-                            }
-                            disabled={processing === category.id}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-black border-2 border-black shadow-neo-sm"
-                          >
-                            {processing === category.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <RotateCcw className="mr-2 h-4 w-4" />
-                            )}
-                            Revert to Pending
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              handleApproval(
-                                "category",
-                                category.id,
-                                "APPROVED"
-                              )
-                            }
-                            disabled={processing === category.id}
-                            className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Approve
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
-
-            {/* Rejected Tags Tab */}
-            <TabsContent value="tags" className="space-y-4">
-              {rejectedTags.length === 0 ? (
-                <Card className="border-2 border-black shadow-neo bg-purple-50">
-                  <CardContent className="p-8 text-center">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-purple-600" />
-                    <p className="font-bold text-lg">No rejected tags</p>
-                    <p className="text-muted-foreground">
-                      All tags have been processed
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                rejectedTags.map((tag) => (
-                  <Card
-                    key={tag.id}
-                    className="border-2 border-black shadow-neo border-l-4 border-l-red-500"
-                  >
-                    <CardHeader className="border-b-2 border-black bg-red-50">
-                      <CardTitle className="font-black text-xl flex items-center gap-2">
-                        <XCircle className="h-5 w-5 text-red-500" />
-                        {tag.name}
-                        {tag.color && (
-                          <span
-                            className="w-6 h-6 rounded border-2 border-black"
-                            style={{ backgroundColor: tag.color }}
-                          />
+                      </CardHeader>
+                      <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+                        {category.description && (
+                          <p className="text-muted-foreground">
+                            {category.description}
+                          </p>
                         )}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Slug: {tag.slug}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t-2 border-dashed border-black gap-2 sm:gap-0">
+                          <div className="text-sm text-muted-foreground">
+                            <span className="font-medium">Submitted by:</span>{" "}
+                            {category.user.name || category.user.email} •{" "}
+                            {new Date(category.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              onClick={() =>
+                                handleApproval(
+                                  "category",
+                                  category.id,
+                                  "APPROVED"
+                                )
+                              }
+                              disabled={processing === category.id}
+                              className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
+                            >
+                              {processing === category.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                              )}
+                              Approve
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() =>
+                                handleApproval(
+                                  "category",
+                                  category.id,
+                                  "REJECTED"
+                                )
+                              }
+                              disabled={processing === category.id}
+                              className="border-2 border-black shadow-neo-sm"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
+              {/* Tags Tab */}
+              <TabsContent value="tags" className="space-y-4">
+                {tags.length === 0 ? (
+                  <Card className="border-2 border-black shadow-neo bg-purple-50">
+                    <CardContent className="p-8 text-center">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 text-purple-600" />
+                      <p className="font-bold text-lg">All caught up!</p>
+                      <p className="text-muted-foreground">
+                        No pending tags to review
                       </p>
-                    </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
-                      <div className="flex items-center justify-between pt-2 border-t-2 border-dashed border-black">
-                        <div className="text-sm text-muted-foreground">
-                          <span className="font-medium">Submitted by:</span>{" "}
-                          {tag.user.name || tag.user.email} •{" "}
-                          {new Date(tag.createdAt).toLocaleDateString()}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() =>
-                              handleApproval("tag", tag.id, "PENDING")
-                            }
-                            disabled={processing === tag.id}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-black border-2 border-black shadow-neo-sm"
-                          >
-                            {processing === tag.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <RotateCcw className="mr-2 h-4 w-4" />
-                            )}
-                            Revert to Pending
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              handleApproval("tag", tag.id, "APPROVED")
-                            }
-                            disabled={processing === tag.id}
-                            className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Approve
-                          </Button>
-                        </div>
-                      </div>
                     </CardContent>
                   </Card>
-                ))
-              )}
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-      </Tabs>
+                ) : (
+                  tags.map((tag) => (
+                    <Card
+                      key={tag.id}
+                      className="border-2 border-black shadow-neo"
+                    >
+                      <CardHeader className="border-b-2 border-black bg-purple-100 px-3 py-2 sm:px-6 sm:py-4">
+                        <CardTitle className="font-black text-xl flex items-center gap-2">
+                          <Tag className="h-5 w-5" />
+                          {tag.name}
+                          {tag.color && (
+                            <span
+                              className="w-6 h-6 rounded border-2 border-black"
+                              style={{ backgroundColor: tag.color }}
+                            />
+                          )}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Slug: {tag.slug}
+                        </p>
+                      </CardHeader>
+                      <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t-2 border-dashed border-black gap-2 sm:gap-0">
+                          <div className="text-sm text-muted-foreground">
+                            <span className="font-medium">Submitted by:</span>{" "}
+                            {tag.user.name || tag.user.email} •{" "}
+                            {new Date(tag.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              onClick={() =>
+                                handleApproval("tag", tag.id, "APPROVED")
+                              }
+                              disabled={processing === tag.id}
+                              className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
+                            >
+                              {processing === tag.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                              )}
+                              Approve
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() =>
+                                handleApproval("tag", tag.id, "REJECTED")
+                              }
+                              disabled={processing === tag.id}
+                              className="border-2 border-black shadow-neo-sm"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          {/* Rejected Tab Content */}
+          <TabsContent value="rejected" className="space-y-4">
+            <Tabs defaultValue="resources" className="space-y-4">
+              <div className="overflow-x-auto">
+                <TabsList className="border-2 border-black p-1 bg-white min-w-[340px] w-full flex-nowrap">
+                  <TabsTrigger
+                    value="resources"
+                    className="data-[state=active]:bg-green-200 font-bold"
+                  >
+                    <Link2 className="mr-2 h-4 w-4" />
+                    Resources ({rejectedResources.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="categories"
+                    className="data-[state=active]:bg-blue-200 font-bold"
+                  >
+                    <FolderKanban className="mr-2 h-4 w-4" />
+                    Categories ({rejectedCategories.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="tags"
+                    className="data-[state=active]:bg-purple-200 font-bold"
+                  >
+                    <Tag className="mr-2 h-4 w-4" />
+                    Tags ({rejectedTags.length})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* Rejected Resources Tab */}
+              <TabsContent value="resources" className="space-y-4">
+                {rejectedResources.length === 0 ? (
+                  <Card className="border-2 border-black shadow-neo bg-green-50">
+                    <CardContent className="p-8 text-center">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600" />
+                      <p className="font-bold text-lg">No rejected resources</p>
+                      <p className="text-muted-foreground">
+                        All resources have been processed
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  rejectedResources.map((resource) => (
+                    <Card
+                      key={resource.id}
+                      className="border-2 border-black shadow-neo border-l-4 border-l-red-500 mb-2 sm:mb-0"
+                    >
+                      <CardHeader className="border-b-2 border-black bg-red-50 px-3 py-2 sm:px-6 sm:py-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
+                          <div>
+                            <CardTitle className="font-black text-xl flex items-center gap-2">
+                              <XCircle className="h-5 w-5 text-red-500" />
+                              {resource.title}
+                            </CardTitle>
+                            <a
+                              href={resource.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-sm"
+                            >
+                              {resource.url}
+                            </a>
+                          </div>
+                          <Badge variant="destructive">REJECTED</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+                        {resource.description && (
+                          <p className="text-muted-foreground">
+                            {resource.description}
+                          </p>
+                        )}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t-2 border-dashed border-black gap-2 sm:gap-0">
+                          <div className="text-sm text-muted-foreground">
+                            <span className="font-medium">Submitted by:</span>{" "}
+                            {resource.user.name || resource.user.email} •{" "}
+                            {new Date(resource.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              onClick={() =>
+                                handleApproval(
+                                  "resource",
+                                  resource.id,
+                                  "PENDING"
+                                )
+                              }
+                              disabled={processing === resource.id}
+                              className="bg-yellow-500 hover:bg-yellow-600 text-black border-2 border-black shadow-neo-sm"
+                            >
+                              {processing === resource.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                              )}
+                              Revert to Pending
+                            </Button>
+                            <Button
+                              onClick={() =>
+                                handleApproval(
+                                  "resource",
+                                  resource.id,
+                                  "APPROVED"
+                                )
+                              }
+                              disabled={processing === resource.id}
+                              className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Approve
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
+              {/* Rejected Categories Tab */}
+              <TabsContent value="categories" className="space-y-4">
+                {rejectedCategories.length === 0 ? (
+                  <Card className="border-2 border-black shadow-neo bg-blue-50">
+                    <CardContent className="p-8 text-center">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 text-blue-600" />
+                      <p className="font-bold text-lg">
+                        No rejected categories
+                      </p>
+                      <p className="text-muted-foreground">
+                        All categories have been processed
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  rejectedCategories.map((category) => (
+                    <Card
+                      key={category.id}
+                      className="border-2 border-black shadow-neo border-l-4 border-l-red-500"
+                    >
+                      <CardHeader className="border-b-2 border-black bg-red-50 px-3 py-2 sm:px-6 sm:py-4">
+                        <CardTitle className="font-black text-xl flex items-center gap-2">
+                          <XCircle className="h-5 w-5 text-red-500" />
+                          {category.name}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Slug: {category.slug}
+                        </p>
+                      </CardHeader>
+                      <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+                        {category.description && (
+                          <p className="text-muted-foreground">
+                            {category.description}
+                          </p>
+                        )}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t-2 border-dashed border-black gap-2 sm:gap-0">
+                          <div className="text-sm text-muted-foreground">
+                            <span className="font-medium">Submitted by:</span>{" "}
+                            {category.user.name || category.user.email} •{" "}
+                            {new Date(category.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              onClick={() =>
+                                handleApproval(
+                                  "category",
+                                  category.id,
+                                  "PENDING"
+                                )
+                              }
+                              disabled={processing === category.id}
+                              className="bg-yellow-500 hover:bg-yellow-600 text-black border-2 border-black shadow-neo-sm"
+                            >
+                              {processing === category.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                              )}
+                              Revert to Pending
+                            </Button>
+                            <Button
+                              onClick={() =>
+                                handleApproval(
+                                  "category",
+                                  category.id,
+                                  "APPROVED"
+                                )
+                              }
+                              disabled={processing === category.id}
+                              className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Approve
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
+              {/* Rejected Tags Tab */}
+              <TabsContent value="tags" className="space-y-4">
+                {rejectedTags.length === 0 ? (
+                  <Card className="border-2 border-black shadow-neo bg-purple-50">
+                    <CardContent className="p-8 text-center">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 text-purple-600" />
+                      <p className="font-bold text-lg">No rejected tags</p>
+                      <p className="text-muted-foreground">
+                        All tags have been processed
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  rejectedTags.map((tag) => (
+                    <Card
+                      key={tag.id}
+                      className="border-2 border-black shadow-neo border-l-4 border-l-red-500"
+                    >
+                      <CardHeader className="border-b-2 border-black bg-red-50 px-3 py-2 sm:px-6 sm:py-4">
+                        <CardTitle className="font-black text-xl flex items-center gap-2">
+                          <XCircle className="h-5 w-5 text-red-500" />
+                          {tag.name}
+                          {tag.color && (
+                            <span
+                              className="w-6 h-6 rounded border-2 border-black"
+                              style={{ backgroundColor: tag.color }}
+                            />
+                          )}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Slug: {tag.slug}
+                        </p>
+                      </CardHeader>
+                      <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t-2 border-dashed border-black gap-2 sm:gap-0">
+                          <div className="text-sm text-muted-foreground">
+                            <span className="font-medium">Submitted by:</span>{" "}
+                            {tag.user.name || tag.user.email} •{" "}
+                            {new Date(tag.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              onClick={() =>
+                                handleApproval("tag", tag.id, "PENDING")
+                              }
+                              disabled={processing === tag.id}
+                              className="bg-yellow-500 hover:bg-yellow-600 text-black border-2 border-black shadow-neo-sm"
+                            >
+                              {processing === tag.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                              )}
+                              Revert to Pending
+                            </Button>
+                            <Button
+                              onClick={() =>
+                                handleApproval("tag", tag.id, "APPROVED")
+                              }
+                              disabled={processing === tag.id}
+                              className="bg-green-500 hover:bg-green-600 border-2 border-black shadow-neo-sm"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Approve
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
