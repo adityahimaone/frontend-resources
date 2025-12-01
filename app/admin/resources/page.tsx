@@ -62,6 +62,9 @@ interface Resource {
     name: string;
     color: string;
   }[];
+  user?: {
+    name: string | null;
+  };
   createdAt: string;
 }
 
@@ -272,7 +275,8 @@ export default function AdminResourcesPage() {
                 <TableHead>Tags</TableHead>
                 <TableHead>Visibility</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>URL</TableHead>
+                <TableHead>Created By</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -330,15 +334,14 @@ export default function AdminResourcesPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Link
-                      href={resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-primary"
-                    >
-                      Visit
-                      <ExternalLink className="ml-1 h-4 w-4" />
-                    </Link>
+                    <div className="text-sm">
+                      {resource.user?.name || "Unknown"}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {new Date(resource.createdAt).toLocaleDateString()}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

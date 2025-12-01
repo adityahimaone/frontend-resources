@@ -52,6 +52,9 @@ interface Category {
   description: string;
   isPublic: boolean;
   approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
+  user?: {
+    name: string | null;
+  };
   createdAt: string;
 }
 
@@ -214,6 +217,8 @@ export default function AdminCategoriesPage() {
                 <TableHead>Slug</TableHead>
                 <TableHead>Visibility</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Created By</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -258,6 +263,16 @@ export default function AdminCategoriesPage() {
                         Rejected
                       </Badge>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {category.user?.name || "Unknown"}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {new Date(category.createdAt).toLocaleDateString()}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

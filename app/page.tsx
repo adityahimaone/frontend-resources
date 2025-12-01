@@ -53,6 +53,7 @@ interface Resource {
   title: string;
   url: string;
   description: string;
+  thumbnail?: string | null;
   category: {
     name: string;
   };
@@ -200,7 +201,7 @@ export default function Home() {
                 development workflow.
               </p>
               {/* Search Component */}
-              <div className="mt-2 max-w-2xl mx-auto relative z-30">
+              <div className="mt-2 max-w-2xl mx-auto relative z-50">
                 <LandingPageSearch />
               </div>
             </motion.div>
@@ -281,8 +282,11 @@ export default function Home() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
                   <ResourceCard
+                    id={resource.id}
                     title={resource.title}
                     description={resource.description}
+                    url={resource.url}
+                    thumbnail={resource.thumbnail}
                     link={resource.url}
                     isExternal
                     tags={resource.tags}

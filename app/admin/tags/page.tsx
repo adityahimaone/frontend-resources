@@ -45,6 +45,9 @@ interface Tag {
   color: string;
   isPublic: boolean;
   approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
+  user?: {
+    name: string | null;
+  };
   createdAt: string;
 }
 
@@ -194,6 +197,8 @@ export default function TagsPage() {
                 <TableHead>Preview</TableHead>
                 <TableHead>Visibility</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Created By</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -241,6 +246,14 @@ export default function TagsPage() {
                         Rejected
                       </Badge>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{tag.user?.name || "Unknown"}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {new Date(tag.createdAt).toLocaleDateString()}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

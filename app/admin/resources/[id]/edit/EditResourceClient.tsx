@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Globe, Lock, Flame, TrendingUp } from "lucide-react";
+import {
+  ArrowLeft,
+  Globe,
+  Lock,
+  Flame,
+  TrendingUp,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -33,6 +41,7 @@ interface Resource {
   title: string;
   url: string;
   description: string;
+  thumbnail?: string | null;
   categoryId: string;
   isPublic?: boolean;
   isHot?: boolean;
@@ -67,6 +76,7 @@ export default function EditResourceClient({ id }: { id: string }) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [scraping, setScraping] = useState(false);
   const [resource, setResource] = useState<Resource | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Option[]>([]);
@@ -131,6 +141,7 @@ export default function EditResourceClient({ id }: { id: string }) {
         title: data.title,
         url: data.url,
         description: data.description,
+        thumbnail: data.thumbnail || null,
         categoryId: data.categoryId,
         isPublic: data.isPublic ?? true,
         isHot: data.isHot ?? false,
@@ -193,6 +204,58 @@ export default function EditResourceClient({ id }: { id: string }) {
     }
   }
 
+  async function handleAutoFill() {
+    if (!resource?.url) {
+      toast({
+        title: "URL Required",
+        description: "Please enter a URL first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setScraping(true);
+    try {
+      const response = await fetch("/api/scrape-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: resource.url }),
+      });
+
+      if (!response.ok) throw new Error("Failed to scrape URL");
+
+      const data = await response.json();
+
+      const updates: Partial<Resource> = {};
+      if (data.title && !resource.title) {
+        updates.title = data.title;
+      }
+      if (data.description && !resource.description) {
+        updates.description = data.description;
+      }
+      if (data.thumbnail) {
+        updates.thumbnail = data.thumbnail;
+      }
+
+      setResource({ ...resource, ...updates });
+
+      toast({
+        title: "Success",
+        description: "Metadata fetched successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch metadata from URL",
+        variant: "destructive",
+      });
+    } finally {
+      setScraping(false);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resource) return;
@@ -209,6 +272,7 @@ export default function EditResourceClient({ id }: { id: string }) {
           title: resource.title,
           url: resource.url,
           description: resource.description,
+          thumbnail: resource.thumbnail,
           categoryId: resource.categoryId,
           tagIds: selectedTags.map((tag) => tag.value),
           isPublic: resource.isPublic,
@@ -307,15 +371,95 @@ export default function EditResourceClient({ id }: { id: string }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="url">URL</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="url"
+                    type="url"
+                    value={resource.url}
+                    onChange={(e) =>
+                      setResource({ ...resource, url: e.target.value })
+                    }
+                    required
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAutoFill}
+                    disabled={scraping || !resource.url}
+                    className="bg-purple-400 text-black font-bold border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                  >
+                    {scraping ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Fetching...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Auto-fill
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Click Auto-fill to fetch title, description, and thumbnail
+                  from the URL
+                </p>
+              </div>
+
+              {/* Thumbnail Preview */}
+              {resource.thumbnail && (
+                <div className="space-y-2">
+                  <Label className="font-bold">Thumbnail Preview</Label>
+                  <div className="w-full h-48 border-2 border-black overflow-hidden bg-gray-100">
+                    <img
+                      src={resource.thumbnail}
+                      alt="Thumbnail preview"
+                      className="w-full h-full object-cover"
+                      onError={() => {
+                        setResource({ ...resource, thumbnail: null });
+                        toast({
+                          title: "Invalid thumbnail",
+                          description: "Failed to load thumbnail image",
+                          variant: "destructive",
+                        });
+                      }}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setResource({ ...resource, thumbnail: null })
+                    }
+                    className="w-full"
+                  >
+                    Remove Thumbnail
+                  </Button>
+                </div>
+              )}
+
+              {/* Manual Thumbnail Input */}
+              <div className="space-y-2">
+                <Label htmlFor="thumbnail" className="font-bold">
+                  Thumbnail URL (Optional)
+                </Label>
                 <Input
-                  id="url"
+                  id="thumbnail"
                   type="url"
-                  value={resource.url}
+                  value={resource.thumbnail || ""}
                   onChange={(e) =>
-                    setResource({ ...resource, url: e.target.value })
+                    setResource({
+                      ...resource,
+                      thumbnail: e.target.value || null,
+                    })
                   }
-                  required
+                  placeholder="https://example.com/image.jpg"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Leave empty or use Auto-fill to fetch from URL metadata
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>

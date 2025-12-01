@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CodeXmlIcon, LogIn, LogOut, Menu } from "lucide-react";
+import { CodeXmlIcon, LogIn, LogOut, Menu, Bookmark } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -120,6 +120,19 @@ export function Header() {
               </Link>
               {isAuthenticated && (
                 <Link
+                  href="/bookmarks"
+                  className={cn(
+                    "font-bold text-black hover:bg-yellow-400 hover:text-black px-3 py-1 border-2 border-transparent hover:border-black hover:shadow-neo-sm transition-all flex items-center gap-2",
+                    isActive("/bookmarks")
+                      ? "bg-yellow-400 border-black shadow-neo-sm"
+                      : ""
+                  )}
+                >
+                  Bookmarks
+                </Link>
+              )}
+              {isAuthenticated && (
+                <Link
                   href="/admin"
                   className={cn(
                     "font-bold text-black hover:bg-green-400 hover:text-black px-3 py-1 border-2 border-transparent hover:border-black hover:shadow-neo-sm transition-all",
@@ -193,6 +206,20 @@ export function Header() {
                     >
                       Resources
                     </Link>
+                    {isAuthenticated && (
+                      <Link
+                        href="/bookmarks"
+                        className={cn(
+                          "px-2 py-1 rounded-md transition-colors flex items-center gap-2",
+                          isActive("/bookmarks")
+                            ? "bg-primary/10 text-foreground font-medium"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <Bookmark className="h-4 w-4" />
+                        Bookmarks
+                      </Link>
+                    )}
                     {isAuthenticated && (
                       <Link
                         href="/admin"
