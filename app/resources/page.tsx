@@ -47,6 +47,7 @@ interface Resource {
   title: string;
   url: string;
   description: string;
+  thumbnail?: string | null;
   category: {
     name: string;
   };
@@ -59,6 +60,7 @@ interface Resource {
   isPublic?: boolean;
   isHot?: boolean;
   isTrending?: boolean;
+  isBookmarked?: boolean;
 }
 
 interface Category {
@@ -95,6 +97,7 @@ function ResourcesPageImplementation({
   const [resources, setResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<TagType[]>([]);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedTags, setSelectedTags] = useState<TagType[]>([]);
   const [tagSearchValue, setTagSearchValue] = useState("");
@@ -113,6 +116,7 @@ function ResourcesPageImplementation({
   useEffect(() => {
     fetchCategories();
     fetchTags();
+    fetchBookmarks();
   }, []);
 
   useEffect(() => {
@@ -183,6 +187,20 @@ function ResourcesPageImplementation({
       setTags(data);
     } catch (error) {
       console.error("Error fetching tags:", error);
+    }
+  }
+
+  async function fetchBookmarks() {
+    try {
+      const response = await fetch("/api/bookmarks");
+      if (response.ok) {
+        const data = await response.json();
+        const ids = new Set<string>(data.map((r: Resource) => r.id));
+        setBookmarkedIds(ids);
+      }
+    } catch (error) {
+      // User not logged in or error fetching bookmarks
+      console.log("Could not fetch bookmarks:", error);
     }
   }
 
@@ -485,15 +503,20 @@ function ResourcesPageImplementation({
             transition={{ duration: 0.5, delay: Math.min(index * 0.1, 1) }}
           >
             <ResourceCard
+              id={resource.id}
               title={resource.title}
               description={resource.description}
+              url={resource.url}
+              thumbnail={resource.thumbnail}
               link={resource.url}
               isExternal
               tags={resource.tags}
               isPublic={resource.isPublic}
               isHot={resource.isHot}
               isTrending={resource.isTrending}
+              isBookmarked={bookmarkedIds.has(resource.id)}
               onResourceClick={() => trackClick(resource.id)}
+              onBookmarkChange={fetchBookmarks}
             />
           </motion.div>
         ))}

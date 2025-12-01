@@ -9,8 +9,11 @@ import {
   TrendingUp,
   Clock,
   XCircle,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -19,6 +22,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
 
 interface Tag {
   id: string;
@@ -27,8 +33,11 @@ interface Tag {
 }
 
 interface ResourceCardProps {
+  id?: string;
   title: string;
   description: string;
+  url?: string;
+  thumbnail?: string | null;
   icon?: React.ElementType;
   iconColor?: string;
   link?: string;
@@ -39,12 +48,17 @@ interface ResourceCardProps {
   isHot?: boolean;
   isTrending?: boolean;
   approvalStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  isBookmarked?: boolean;
   onResourceClick?: () => void;
+  onBookmarkChange?: () => void;
 }
 
 export function ResourceCard({
+  id,
   title,
   description,
+  url,
+  thumbnail,
   icon: Icon,
   iconColor,
   link,
@@ -55,11 +69,80 @@ export function ResourceCard({
   isHot = false,
   isTrending = false,
   approvalStatus = "APPROVED",
+  isBookmarked: initialIsBookmarked = false,
   onResourceClick,
+  onBookmarkChange,
 }: ResourceCardProps) {
+  const { data: session } = useSession();
+  const { toast } = useToast();
+  const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
+  const [isBookmarking, setIsBookmarking] = useState(false);
+
   const handleClick = () => {
     if (onResourceClick) {
       onResourceClick();
+    }
+  };
+
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!session) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to bookmark resources",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!id) {
+      toast({
+        title: "Error",
+        description: "Resource ID is missing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsBookmarking(true);
+    try {
+      const response = await fetch("/api/bookmarks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ resourceId: id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to toggle bookmark");
+      }
+
+      const data = await response.json();
+      setIsBookmarked(data.bookmarked);
+
+      toast({
+        title: data.bookmarked ? "Bookmarked" : "Removed from bookmarks",
+        description: data.bookmarked
+          ? "Resource added to your bookmarks"
+          : "Resource removed from your bookmarks",
+      });
+
+      if (onBookmarkChange) {
+        onBookmarkChange();
+      }
+    } catch (error: any) {
+      console.error("Bookmark error:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to update bookmark",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBookmarking(false);
     }
   };
 
@@ -98,7 +181,7 @@ export function ResourceCard({
         <CardHeader className="relative">
           {/* Status Badge for Pending/Rejected */}
           {showStatusBadge && (
-            <div className="absolute -top-3 -left-3">
+            <div className="absolute -top-3 -left-3 z-10">
               {approvalStatus === "PENDING" && (
                 <span className="flex items-center gap-1 px-2 py-1 bg-yellow-500 text-black text-xs font-black border-2 border-black shadow-neo-sm">
                   <Clock className="w-3 h-3" />
@@ -115,7 +198,7 @@ export function ResourceCard({
           )}
 
           {/* Hot/Trending Labels */}
-          <div className="absolute -top-3 -right-3 flex gap-1">
+          <div className="absolute -top-3 -right-3 flex gap-1 z-10">
             {isHot && (
               <span className="flex items-center gap-1 px-2 py-1 bg-orange-500 text-white text-xs font-black border-2 border-black shadow-neo-sm">
                 <Flame className="w-3 h-3" />
@@ -130,30 +213,77 @@ export function ResourceCard({
             )}
           </div>
 
-          {Icon && (
+          {/* Thumbnail */}
+          {thumbnail && (
+            <div className="w-full h-40 mb-4 border-2 border-black overflow-hidden bg-gray-100">
+              <img
+                src={thumbnail}
+                alt={title}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
+          )}
+
+          {Icon && !thumbnail && (
             <div
               className={`w-14 h-14 rounded-lg border-2 border-black ${iconColor} flex items-center justify-center mb-4`}
             >
               <Icon className="w-7 h-7" />
             </div>
           )}
-          <CardTitle className="flex items-center justify-between font-black text-xl">
-            <span className="flex items-center gap-2">
-              {title}
+
+          <CardTitle className="flex items-center justify-between font-black text-xl gap-2">
+            <span className="flex items-center gap-2 flex-1 min-w-0">
+              <span className="truncate">{title}</span>
               {/* Visibility Icon */}
               {isPublic ? (
-                <Globe className="w-4 h-4 text-green-600" aria-label="Public" />
+                <Globe
+                  className="w-4 h-4 text-green-600 shrink-0"
+                  aria-label="Public"
+                />
               ) : (
-                <Lock className="w-4 h-4 text-amber-600" aria-label="Private" />
+                <Lock
+                  className="w-4 h-4 text-amber-600 shrink-0"
+                  aria-label="Private"
+                />
               )}
             </span>
-            {link &&
-              (isExternal ? (
-                <ExternalLink className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-              ) : (
-                <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
-              ))}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Bookmark Button */}
+              {session && id && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 hover:bg-yellow-400 hover:border-2 hover:border-black transition-all"
+                  onClick={handleBookmark}
+                  disabled={isBookmarking}
+                >
+                  {isBookmarked ? (
+                    <BookmarkCheck className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                  ) : (
+                    <Bookmark className="w-5 h-5" />
+                  )}
+                </Button>
+              )}
+              {link &&
+                (isExternal ? (
+                  <ExternalLink className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                ) : (
+                  <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
+                ))}
+            </div>
           </CardTitle>
+
+          {/* URL Display */}
+          {url && (
+            <div className="text-xs text-muted-foreground truncate font-mono mt-1">
+              {url}
+            </div>
+          )}
+
           {tags && tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {tags.map((tag) => (

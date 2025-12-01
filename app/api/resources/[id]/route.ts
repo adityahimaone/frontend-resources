@@ -59,7 +59,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { title, url, description, categoryId, tagIds, isPublic, isHot, isTrending } = body;
+    const { title, url, description, thumbnail, categoryId, tagIds, isPublic, isHot, isTrending } = body;
 
     // Check if user owns this resource or is super admin
     const existingResource = await prisma.resource.findUnique({
@@ -84,6 +84,7 @@ export async function PUT(
       title,
       url,
       description,
+      thumbnail,
       categoryId,
       tags: tagIds?.length
         ? {

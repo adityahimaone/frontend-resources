@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Globe, Lock } from "lucide-react";
+import { ArrowLeft, Globe, Lock, Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -49,12 +49,14 @@ const TAG_COLORS = [
 export default function NewResourcePage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const [scraping, setScraping] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Option[]>([]);
   const [selectedTags, setSelectedTags] = useState<Option[]>([]);
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [thumbnail, setThumbnail] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const router = useRouter();
@@ -89,6 +91,8 @@ export default function NewResourcePage() {
       const response = await fetch("/api/tags?sortField=name&sortOrder=asc");
       if (!response.ok) throw new Error("Failed to fetch tags");
       const data = await response.json();
+
+      console.log("Fetched tags:", data);
       setTags(
         data.map((tag: any) => ({
           value: tag.id,
@@ -141,30 +145,88 @@ export default function NewResourcePage() {
     }
   }
 
+  async function handleAutoFill() {
+    if (!url) {
+      toast({
+        title: "URL Required",
+        description: "Please enter a URL first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setScraping(true);
+    try {
+      const response = await fetch("/api/scrape-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) throw new Error("Failed to scrape URL");
+
+      const data = await response.json();
+
+      if (data.title && !title) {
+        setTitle(data.title);
+      }
+      if (data.description && !description) {
+        setDescription(data.description);
+      }
+      if (data.thumbnail) {
+        setThumbnail(data.thumbnail);
+      }
+
+      toast({
+        title: "Success",
+        description: "Metadata fetched successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch metadata from URL",
+        variant: "destructive",
+      });
+    } finally {
+      setScraping(false);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      const payload = {
+        title,
+        url,
+        description,
+        thumbnail: thumbnail || null,
+        categoryId,
+        tagIds: selectedTags.map((tag) => tag.value),
+        isPublic,
+      };
+
+      console.log("Creating resource with payload:", payload);
+
       const response = await fetch("/api/resources", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title,
-          url,
-          description,
-          categoryId,
-          tagIds: selectedTags.map((tag) => tag.value),
-          isPublic,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const error = await response.json();
+        console.error("API error response:", error);
         throw new Error(error.error || "Failed to create resource");
       }
+
+      const data = await response.json();
+      console.log("Resource created successfully:", data);
 
       toast({
         title: "Success",
@@ -176,6 +238,7 @@ export default function NewResourcePage() {
 
       router.push("/admin/resources");
     } catch (error: any) {
+      console.error("Error creating resource:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create resource",
@@ -236,14 +299,88 @@ export default function NewResourcePage() {
                 <Label htmlFor="url" className="font-bold">
                   URL
                 </Label>
-                <Input
-                  id="url"
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  required
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="url"
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    required
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAutoFill}
+                    disabled={scraping || !url}
+                    className="bg-purple-400 text-black font-bold border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                  >
+                    {scraping ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Fetching...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Auto-fill
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Click Auto-fill to fetch title, description, and thumbnail
+                  from the URL
+                </p>
               </div>
+
+              {/* Thumbnail Preview */}
+              {thumbnail && (
+                <div className="space-y-2">
+                  <Label className="font-bold">Thumbnail Preview</Label>
+                  <div className="w-full h-48 border-2 border-black overflow-hidden bg-gray-100">
+                    <img
+                      src={thumbnail}
+                      alt="Thumbnail preview"
+                      className="w-full h-full object-cover"
+                      onError={() => {
+                        setThumbnail("");
+                        toast({
+                          title: "Invalid thumbnail",
+                          description: "Failed to load thumbnail image",
+                          variant: "destructive",
+                        });
+                      }}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setThumbnail("")}
+                    className="w-full"
+                  >
+                    Remove Thumbnail
+                  </Button>
+                </div>
+              )}
+
+              {/* Manual Thumbnail Input */}
+              <div className="space-y-2">
+                <Label htmlFor="thumbnail" className="font-bold">
+                  Thumbnail URL (Optional)
+                </Label>
+                <Input
+                  id="thumbnail"
+                  type="url"
+                  value={thumbnail}
+                  onChange={(e) => setThumbnail(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave empty or use Auto-fill to fetch from URL metadata
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="category" className="font-bold">
                   Category
@@ -284,6 +421,7 @@ export default function NewResourcePage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   required
+                  rows={4}
                 />
               </div>
 

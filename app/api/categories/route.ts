@@ -40,12 +40,12 @@ export async function GET(request: NextRequest) {
 
     // Filter by visibility and approval status
     if (session?.user) {
-      if (showPrivate === "true") {
+      if (session.user.role === "SUPER_ADMIN") {
+        // Super admin sees everything (all users, all statuses, public and private)
+        // No filters applied
+      } else if (showPrivate === "true") {
         where.userId = session.user.id;
         where.isPublic = false;
-      } else if (showPending === "true" && session.user.role === "SUPER_ADMIN") {
-        where.approvalStatus = "PENDING";
-        where.isPublic = true;
       } else {
         where.OR = [
           { isPublic: true, approvalStatus: "APPROVED" },
@@ -67,12 +67,24 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: {
-        [sortField === "created_at" ? "createdAt" : sortField]: sortOrder,
-      },
+      orderBy: [
+        { approvalStatus: "asc" }, // APPROVED first, then PENDING, then REJECTED
+        { [sortField === "created_at" ? "createdAt" : sortField]: sortOrder },
+      ],
     });
 
-    return NextResponse.json(categories);
+    // Deduplicate categories by name (case-insensitive), keeping the first one (which will be approved if exists)
+    const uniqueCategories = categories.reduce((acc: any[], category) => {
+      const existingCategory = acc.find(
+        (c) => c.name.toLowerCase() === category.name.toLowerCase()
+      );
+      if (!existingCategory) {
+        acc.push(category);
+      }
+      return acc;
+    }, []);
+
+    return NextResponse.json(uniqueCategories);
   } catch (error) {
     console.error("Error fetching categories:", error);
     return NextResponse.json(
@@ -93,25 +105,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, slug, description, isPublic = true } = body;
 
-    // Check for duplicates
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+
+    // Check for duplicates across all users (case-insensitive)
     const existingCategory = await prisma.category.findFirst({
       where: {
         OR: [
-          { name, userId: session.user.id },
-          { slug, userId: session.user.id },
+          { name: { equals: name, mode: "insensitive" } },
+          { slug: { equals: slug, mode: "insensitive" } },
         ],
       },
     });
 
     if (existingCategory) {
-      return NextResponse.json(
-        { error: "A category with this name or slug already exists" },
-        { status: 400 }
-      );
+      // Super admin can override rejected categories
+      if (isSuperAdmin && existingCategory.approvalStatus === "REJECTED") {
+        // Delete the rejected category and create new one
+        await prisma.category.delete({ where: { id: existingCategory.id } });
+      } else {
+        return NextResponse.json(
+          { error: "A category with this name or slug already exists in the database" },
+          { status: 400 }
+        );
+      }
     }
 
     // Determine approval status
-    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
     const approvalStatus = isPublic && !isSuperAdmin ? "PENDING" : "APPROVED";
 
     const category = await prisma.category.create({

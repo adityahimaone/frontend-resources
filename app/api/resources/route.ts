@@ -23,14 +23,13 @@ export async function GET(request: NextRequest) {
 
     // Filter by visibility and approval status
     if (session?.user) {
-      if (showPrivate === "true") {
+      if (session.user.role === "SUPER_ADMIN") {
+        // Super admin sees everything (all users, all statuses, public and private)
+        // No filters applied
+      } else if (showPrivate === "true") {
         // Show user's private resources
         where.userId = session.user.id;
         where.isPublic = false;
-      } else if (showPending === "true" && session.user.role === "SUPER_ADMIN") {
-        // Super admin can see pending resources
-        where.approvalStatus = "PENDING";
-        where.isPublic = true;
       } else {
         // Show public approved resources + user's own resources
         where.OR = [
@@ -116,12 +115,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
-    const { title, url, description, categoryId, tagIds, isPublic = true } = body;
+    const { title, url, description, thumbnail, categoryId, tagIds, isPublic = true } = body;
+
+    // Validate required fields
+    if (!title || !url || !description || !categoryId) {
+      return NextResponse.json(
+        { error: "Title, URL, description, and category are required" },
+        { status: 400 }
+      );
+    }
 
     // Check for duplicates
     const existingResource = await prisma.resource.findFirst({
@@ -140,6 +147,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify category exists
+    const categoryExists = await prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!categoryExists) {
+      return NextResponse.json(
+        { error: "Category not found" },
+        { status: 404 }
+      );
+    }
+
     // Determine approval status
     const isSuperAdmin = session.user.role === "SUPER_ADMIN";
     const approvalStatus = isPublic && !isSuperAdmin ? "PENDING" : "APPROVED";
@@ -149,17 +168,11 @@ export async function POST(request: NextRequest) {
         title,
         url,
         description,
+        thumbnail: thumbnail || null,
         categoryId,
         userId: session.user.id,
         isPublic,
         approvalStatus,
-        tags: tagIds?.length
-          ? {
-              create: tagIds.map((tagId: string) => ({
-                tag: { connect: { id: tagId } },
-              })),
-            }
-          : undefined,
       },
       include: {
         category: true,
@@ -177,11 +190,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create tag associations separately to avoid duplicates
+    if (tagIds?.length) {
+      await prisma.resourceTag.createMany({
+        data: tagIds.map((tagId: string) => ({
+          resourceId: resource.id,
+          tagId: tagId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     return NextResponse.json(resource, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating resource:", error);
     return NextResponse.json(
-      { error: "Failed to create resource" },
+      { error: error?.message || "Failed to create resource" },
       { status: 500 }
     );
   }

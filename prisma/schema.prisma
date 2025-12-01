@@ -35,6 +35,7 @@ model User {
   categories    Category[]
   resources     Resource[]
   tags          Tag[]
+  bookmarks     Bookmark[]
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 }
@@ -101,6 +102,7 @@ model Resource {
   title          String
   url            String
   description    String?
+  thumbnail      String?
   isPublic       Boolean        @default(true) @map("is_public")
   approvalStatus ApprovalStatus @default(PENDING) @map("approval_status")
   isHot          Boolean        @default(false) @map("is_hot")
@@ -113,6 +115,7 @@ model Resource {
   category       Category?      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   tags           ResourceTag[]
+  bookmarks      Bookmark[]
 
   @@unique([title, userId])
   @@unique([url, userId])
@@ -144,4 +147,16 @@ model ResourceTag {
 
   @@id([resourceId, tagId])
   @@map("resource_tags")
+}
+
+model Bookmark {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  resourceId String   @map("resource_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceId])
+  @@map("bookmarks")
 }
