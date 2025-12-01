@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
 
 interface Tag {
   id: string;
@@ -213,27 +214,59 @@ export function ResourceCard({
             )}
           </div>
 
-          {/* Thumbnail */}
-          {thumbnail && (
-            <div className="w-full h-40 mb-4 border-2 border-black overflow-hidden bg-gray-100">
+          {/* Thumbnail - Always show to maintain consistent height */}
+          <div className="w-full h-40 mb-4 border-2 border-black overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+            {thumbnail ? (
               <img
                 src={thumbnail}
                 alt={title}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.style.display = "none";
+                  // Show placeholder on error
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    e.currentTarget.style.display = "none";
+                    const placeholder = document.createElement("div");
+                    placeholder.className =
+                      "w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300";
+                    placeholder.innerHTML = `<div class="text-center"><svg class="w-16 h-16 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><p class="text-xs font-bold text-gray-500">No Image</p></div>`;
+                    parent.appendChild(placeholder);
+                  }
                 }}
               />
-            </div>
-          )}
-
-          {Icon && !thumbnail && (
-            <div
-              className={`w-14 h-14 rounded-lg border-2 border-black ${iconColor} flex items-center justify-center mb-4`}
-            >
-              <Icon className="w-7 h-7" />
-            </div>
-          )}
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                <div className="text-center">
+                  {Icon ? (
+                    <div
+                      className={`w-16 h-16 rounded-lg border-2 border-black ${iconColor} flex items-center justify-center mx-auto mb-2`}
+                    >
+                      <Icon className="w-8 h-8" />
+                    </div>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-16 h-16 mx-auto text-gray-400 mb-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <p className="text-xs font-bold text-gray-500">
+                        No Image
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           <CardTitle className="flex items-center justify-between font-black text-xl gap-2">
             <span className="flex items-center gap-2 flex-1 min-w-0">
@@ -289,8 +322,10 @@ export function ResourceCard({
               {tags.map((tag) => (
                 <Badge
                   key={tag.id}
-                  className="border-2 border-black text-xs font-bold"
-                  style={{ backgroundColor: tag.color || undefined }}
+                  className={cn(
+                    "border-2 border-black text-xs font-bold",
+                    tag.color
+                  )}
                 >
                   {tag.name}
                 </Badge>
