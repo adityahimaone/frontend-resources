@@ -101,9 +101,6 @@ export default function BookmarksPage() {
           transition={{ duration: 0.5 }}
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-yellow-400 border-2 border-black flex items-center justify-center shadow-neo">
-              <Bookmark className="w-6 h-6 text-black fill-black" />
-            </div>
             <h1 className="text-4xl font-black uppercase tracking-tighter">
               My Bookmarks
             </h1>

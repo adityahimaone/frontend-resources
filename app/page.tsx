@@ -6,10 +6,12 @@ import {
   Code2,
   Compass,
   ExternalLink,
+  Flame,
   Layers,
   Notebook,
   Palette,
   Search,
+  TrendingUp,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -63,6 +65,8 @@ interface Resource {
     color: string;
   }[];
   createdAt: string;
+  isHot?: boolean;
+  isTrending?: boolean;
 }
 
 const categories = [
@@ -118,9 +122,13 @@ const categories = [
 export default function Home() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [hotResources, setHotResources] = useState<Resource[]>([]);
+  const [trendingResources, setTrendingResources] = useState<Resource[]>([]);
   const [recentResources, setRecentResources] = useState<Resource[]>([]);
 
   useEffect(() => {
+    fetchHotResources();
+    fetchTrendingResources();
     fetchRecentResources();
   }, []);
 
@@ -146,6 +154,32 @@ export default function Home() {
     const debounce = setTimeout(searchData, 300);
     return () => clearTimeout(debounce);
   }, [query]);
+
+  const fetchHotResources = async () => {
+    try {
+      const response = await fetch(
+        "/api/resources?isHot=true&sortField=createdAt&sortOrder=desc&limit=6"
+      );
+      if (!response.ok) throw new Error("Failed to fetch hot resources");
+      const data = await response.json();
+      setHotResources(data);
+    } catch (error) {
+      console.error("Error fetching hot resources:", error);
+    }
+  };
+
+  const fetchTrendingResources = async () => {
+    try {
+      const response = await fetch(
+        "/api/resources?isTrending=true&sortField=createdAt&sortOrder=desc&limit=6"
+      );
+      if (!response.ok) throw new Error("Failed to fetch trending resources");
+      const data = await response.json();
+      setTrendingResources(data);
+    } catch (error) {
+      console.error("Error fetching trending resources:", error);
+    }
+  };
 
   const fetchRecentResources = async () => {
     try {
@@ -229,10 +263,12 @@ export default function Home() {
                         {category.title}
                         <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all text-black" />
                       </CardTitle>
-                      <CardDescription className="text-black font-medium mt-2">
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-muted-foreground font-medium">
                         {category.description}
                       </CardDescription>
-                    </CardHeader>
+                    </CardContent>
                   </Card>
                 </Link>
               </motion.div>
@@ -250,11 +286,105 @@ export default function Home() {
               className="text-lg px-8 py-6 font-black uppercase tracking-wider"
             >
               <Link href="/categories">
-                Browse All Resources
+                Browse All Categories
                 <ArrowRight className="ml-2 w-6 h-6" />
               </Link>
             </Button>
           </motion.div>
+          {/* Hot Resources  */}
+          {hotResources.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+              className="mb-16"
+            >
+              <div className="flex items-center justify-between mb-8 border-b-2 border-black pb-4">
+                <h2 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-3">
+                  <span className="flex items-center gap-2 px-3 py-1 bg-orange-500 text-white border-2 border-black shadow-neo-sm">
+                    <Flame className="w-6 h-6" />
+                    Hot Resources
+                  </span>
+                </h2>
+                <Button asChild variant="outline" className="font-bold">
+                  <Link href="/resources?filter=hot">
+                    View All
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {hotResources.map((resource, index) => (
+                  <motion.div
+                    key={resource.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <ResourceCard
+                      id={resource.id}
+                      title={resource.title}
+                      description={resource.description}
+                      url={resource.url}
+                      thumbnail={resource.thumbnail}
+                      link={resource.url}
+                      isExternal
+                      tags={resource.tags}
+                      isHot={resource.isHot}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Trending Resources */}
+          {trendingResources.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.7 }}
+              className="mb-16"
+            >
+              <div className="flex items-center justify-between mb-8 border-b-2 border-black pb-4">
+                <h2 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-3">
+                  <span className="flex items-center gap-2 px-3 py-1 bg-blue-500 text-white border-2 border-black shadow-neo-sm">
+                    <TrendingUp className="w-6 h-6" />
+                    Trending Resources
+                  </span>
+                </h2>
+                <Button asChild variant="outline" className="font-bold">
+                  <Link href="/resources?filter=trending">
+                    View All
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {trendingResources.map((resource, index) => (
+                  <motion.div
+                    key={resource.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <ResourceCard
+                      id={resource.id}
+                      title={resource.title}
+                      description={resource.description}
+                      url={resource.url}
+                      thumbnail={resource.thumbnail}
+                      link={resource.url}
+                      isExternal
+                      tags={resource.tags}
+                      isTrending={resource.isTrending}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
           {/* Recent Add */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

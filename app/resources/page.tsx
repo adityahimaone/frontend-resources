@@ -84,15 +84,23 @@ const RESOURCES_PER_PAGE = 9;
 function ResourcesPageContent() {
   const searchParams = useSearchParams();
   const tagId = searchParams.get("tag");
+  const filterParam = searchParams.get("filter");
 
-  return <ResourcesPageImplementation initialTagId={tagId} />;
+  return (
+    <ResourcesPageImplementation
+      initialTagId={tagId}
+      initialFilter={filterParam}
+    />
+  );
 }
 
 // Main component implementation
 function ResourcesPageImplementation({
   initialTagId,
+  initialFilter,
 }: {
   initialTagId: string | null;
+  initialFilter: string | null;
 }) {
   const [resources, setResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -108,7 +116,11 @@ function ResourcesPageImplementation({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-  const [filterType, setFilterType] = useState<FilterType>("all");
+  const [filterType, setFilterType] = useState<FilterType>(
+    (initialFilter === "hot" || initialFilter === "trending"
+      ? initialFilter
+      : "all") as FilterType
+  );
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -310,6 +322,21 @@ function ResourcesPageImplementation({
     updateResourceUrl(); // Clear tag from URL
   };
 
+  const updateFilterUrl = (filter: FilterType) => {
+    const url = new URL(window.location.href);
+    if (filter === "all") {
+      url.searchParams.delete("filter");
+    } else {
+      url.searchParams.set("filter", filter);
+    }
+    window.history.pushState({}, "", url.toString());
+  };
+
+  const handleFilterChange = (filter: FilterType) => {
+    setFilterType(filter);
+    updateFilterUrl(filter);
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -354,7 +381,7 @@ function ResourcesPageImplementation({
       <div className="mb-4 flex flex-wrap gap-2">
         <Button
           variant={filterType === "all" ? "default" : "outline"}
-          onClick={() => setFilterType("all")}
+          onClick={() => handleFilterChange("all")}
           className={cn(
             "border-2 border-black font-bold",
             filterType === "all" && "bg-black text-white"
@@ -364,7 +391,7 @@ function ResourcesPageImplementation({
         </Button>
         <Button
           variant={filterType === "hot" ? "default" : "outline"}
-          onClick={() => setFilterType("hot")}
+          onClick={() => handleFilterChange("hot")}
           className={cn(
             "border-2 border-black font-bold",
             filterType === "hot" &&
@@ -376,7 +403,7 @@ function ResourcesPageImplementation({
         </Button>
         <Button
           variant={filterType === "trending" ? "default" : "outline"}
-          onClick={() => setFilterType("trending")}
+          onClick={() => handleFilterChange("trending")}
           className={cn(
             "border-2 border-black font-bold",
             filterType === "trending" &&
