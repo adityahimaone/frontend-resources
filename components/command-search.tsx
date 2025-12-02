@@ -109,7 +109,7 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
       }}
       title="Command Search"
       description="Search for categories, resources, and tags"
-      shouldFilter={false}
+      // shouldFilter={false}
     >
       <CommandInput
         placeholder="Search categories, resources, tags..."
