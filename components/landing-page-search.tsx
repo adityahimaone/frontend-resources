@@ -72,14 +72,14 @@ export function LandingPageSearch() {
   }, []);
 
   return (
-    <div className="max-w-2xl mx-auto relative z-50" ref={searchRef}>
+    <div className="max-w-2xl mx-auto relative z-[60]" ref={searchRef}>
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        <div className="relative z-50">
-          <div className="relative z-50">
+        <div className="relative z-[60]">
+          <div className="relative z-[60]">
             <input
               ref={inputRef}
               type="text"
@@ -104,7 +104,7 @@ export function LandingPageSearch() {
                 exit={{ opacity: 0, y: 10, scale: 0.98 }}
                 transition={{ duration: 0.2 }}
                 className="absolute w-full mt-2 bg-white rounded-xl shadow-neo border-2 border-black 
-                overflow-hidden z-[100]"
+                overflow-hidden z-[200]"
               >
                 {isLoading ? (
                   <div className="p-6 flex items-center justify-center">
