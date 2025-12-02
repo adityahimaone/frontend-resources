@@ -534,7 +534,7 @@ export default function AdminApprovalsPage() {
           <TabsContent value="rejected" className="space-y-4">
             <Tabs defaultValue="resources" className="space-y-4">
               <div className="overflow-x-auto">
-                <TabsList className="border-2 border-black p-1 bg-white min-w-[340px] w-full flex-nowrap">
+                <TabsList className="border-2 border-black p-1 bg-white min-w-[340px] sm:w-fit w-full flex-nowrap">
                   <TabsTrigger
                     value="resources"
                     className="data-[state=active]:bg-green-200 font-bold"
