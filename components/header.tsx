@@ -1,7 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { CodeXmlIcon, LogIn, LogOut, Menu, Bookmark } from "lucide-react";
+import {
+  CodeXmlIcon,
+  LogIn,
+  LogOut,
+  Menu,
+  Bookmark,
+  Search,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -13,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Search } from "./search";
 import { cn } from "@/lib/utils";
 import GradientText from "./animation/GradientText";
 import {
@@ -26,6 +33,7 @@ import {
 import { CommandSearch } from "./command-search";
 
 export function Header() {
+  const [commandOpen, setCommandOpen] = useState(false);
   const { data: session, status } = useSession();
   const isAuthenticated = !!session;
   const router = useRouter();
@@ -94,8 +102,18 @@ export function Header() {
 
           <div className="flex items-center gap-4 relative">
             <nav className="hidden md:flex items-center gap-6">
-              <Search />
-              {/* <CommandSearch /> */}
+              <Button
+                variant="outline"
+                onClick={() => setCommandOpen(true)}
+                className="relative px-2 h-9 w-full justify-start items-center text-xs text-muted-foreground sm:pr-12 md:w-28 lg:w-32 border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all bg-white"
+              >
+                <Search className="mr-1 h-3 w-3 shrink-0" />
+                <span className="hidden lg:inline-flex">Search...</span>
+                <span className="inline-flex lg:hidden">Search...</span>
+                <kbd className="pointer-events-none absolute right-1.5 top-1 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </Button>
               <Link
                 href="/categories"
                 className={cn(
@@ -180,9 +198,19 @@ export function Header() {
                   <SheetTitle>Navigation</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-4">
-                  <div className="flex justify-end w-full py-3">
-                    <Search />
-                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setCommandOpen(true);
+                    }}
+                    className="w-full justify-start border-2 border-black shadow-neo-sm"
+                  >
+                    <Search className="mr-2 h-4 w-4" />
+                    Search...
+                    <kbd className="ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                      ⌘K
+                    </kbd>
+                  </Button>
                   <nav className="flex flex-col gap-2">
                     <Link
                       href="/categories"
@@ -261,6 +289,7 @@ export function Header() {
           </div>
         </div>
       </div>
+      <CommandSearch open={commandOpen} onOpenChange={setCommandOpen} />
     </motion.header>
   );
 }

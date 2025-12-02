@@ -1,10 +1,9 @@
 "use client";
+
 import { useCallback, useEffect, useState } from "react";
-import { Search } from "lucide-react";
-import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 import {
-  Command,
+  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -12,7 +11,9 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { motion } from "framer-motion";
+import { Folder, Tag, ExternalLink } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface SearchResult {
   id: string;
@@ -24,11 +25,29 @@ interface SearchResult {
   type: "category" | "resource" | "tag";
 }
 
-export function CommandSearch() {
+interface CommandSearchProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
+
+  // Global keyboard shortcut
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        onOpenChange(!open);
+      }
+    };
+
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, [open, onOpenChange]);
 
   const searchData = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -41,7 +60,7 @@ export function CommandSearch() {
 
     try {
       const response = await fetch(
-        `/api/search?q=${encodeURIComponent(searchQuery)}&limit=5`
+        `/api/search?q=${encodeURIComponent(searchQuery)}&limit=10`
       );
       if (!response.ok) throw new Error("Search failed");
       const data = await response.json();
@@ -55,151 +74,133 @@ export function CommandSearch() {
   }, []);
 
   useEffect(() => {
-    const debounceTimeout = setTimeout(() => {
-      if (isOpen) {
-        searchData(query);
-      }
-    }, 300);
-
-    return () => clearTimeout(debounceTimeout);
-  }, [query, isOpen, searchData]);
-
-  const handleInputChange = (value: string) => {
-    setQuery(value);
-    setIsOpen(true);
-  };
-
-  const handleFocus = () => {
-    setIsOpen(true);
-  };
-
-  const handleBlur = () => {
-    setTimeout(() => {
-      setIsOpen(false);
-      setQuery("");
+    if (!query) {
       setResults([]);
-    }, 200);
+      return;
+    }
+
+    const debounce = setTimeout(() => searchData(query), 300);
+    return () => clearTimeout(debounce);
+  }, [query, searchData]);
+
+  const categories = results.filter((r) => r.type === "category");
+  const resources = results.filter((r) => r.type === "resource");
+  const tags = results.filter((r) => r.type === "tag");
+
+  const handleSelect = (result: SearchResult) => {
+    onOpenChange(false);
+    setQuery("");
+
+    if (result.type === "category") {
+      router.push(`/categories/${result.slug}`);
+    } else if (result.type === "tag") {
+      router.push(`/resources?tag=${result.id}`);
+    } else if (result.type === "resource" && result.url) {
+      window.open(result.url, "_blank");
+    }
   };
 
   return (
-    <div className="max-w-2xl mx-auto relative">
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="relative"
-      >
-        <Command className="rounded-lg border shadow-md">
-          <CommandInput
-            placeholder="Search resources, categories, and tags..."
-            value={query}
-            onValueChange={handleInputChange}
-            onFocus={handleFocus}
-            className="border-0 focus:ring-0 w-full"
-            onMouseLeave={handleBlur}
-            onBlur={handleBlur}
-          />
-          {isOpen && (
-            <CommandList>
-              {isLoading ? (
-                <CommandEmpty>Searching...</CommandEmpty>
-              ) : (
-                <>
-                  {!query.trim() ? (
-                    <CommandEmpty>Start typing to search...</CommandEmpty>
-                  ) : results.length === 0 ? (
-                    <CommandEmpty>No results found.</CommandEmpty>
-                  ) : (
-                    <div className="px-4 py-2 text-sm">
-                      {results.some((r) => r.type === "category") && (
-                        <div className="flex flex-col gap-1">
-                          <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                            Categories
-                          </div>
-                          {results
-                            .filter((r) => r.type === "category")
-                            .map((result) => (
-                              <div
-                                key={result.id}
-                                className="flex w-full hover:bg-slate-100 px-2 py-1 rounded-lg"
-                              >
-                                <Link
-                                  href={`/categories/${result.slug}`}
-                                  className="flex items-center justify-between w-full"
-                                >
-                                  <span>{result.name}</span>
-                                  <Badge variant="secondary">Category</Badge>
-                                </Link>
-                              </div>
-                            ))}
-                        </div>
-                      )}
+    <CommandDialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        onOpenChange(newOpen);
+        if (!newOpen) setQuery("");
+      }}
+      title="Command Search"
+      description="Search for categories, resources, and tags"
+      // shouldFilter={false}
+    >
+      <CommandInput
+        placeholder="Search categories, resources, tags..."
+        value={query}
+        onValueChange={setQuery}
+      />
+      <CommandList>
+        {isLoading ? (
+          <div className="py-6 text-center text-sm">Searching...</div>
+        ) : results.length === 0 && query ? (
+          <div className="py-6 text-center text-sm">
+            No results found for &quot;{query}&quot;
+          </div>
+        ) : !query ? (
+          <div className="py-6 text-center text-sm">
+            Start typing to search...
+          </div>
+        ) : null}
 
-                      {results.some((r) => r.type === "tag") && (
-                        <>
-                          <div className="border-t border-slate-200 my-2" />
-                          <div className="flex flex-col gap-1">
-                            <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                              Tags
-                            </div>
-                            {results
-                              .filter((r) => r.type === "tag")
-                              .map((result) => (
-                                <div
-                                  key={result.id}
-                                  className="flex w-full hover:bg-slate-100 px-2 py-1 rounded-lg"
-                                >
-                                  <Link
-                                    href={`/resources?tag=${result.id}`}
-                                    className="flex items-center justify-between w-full"
-                                  >
-                                    <span>{result.name}</span>
-                                    <Badge className={result.color}>
-                                      {result.name}
-                                    </Badge>
-                                  </Link>
-                                </div>
-                              ))}
-                          </div>
-                        </>
-                      )}
+        {!isLoading && results.length > 0 && (
+          <>
+            {categories.length > 0 && (
+              <CommandGroup heading="Categories">
+                {categories.map((result) => (
+                  <CommandItem
+                    key={result.id}
+                    value={`${result.name}-${result.id}`}
+                    keywords={[result.name || ""]}
+                    onSelect={() => handleSelect(result)}
+                    className="cursor-pointer"
+                  >
+                    <Folder className="mr-2 h-4 w-4 text-pink-600" />
+                    <span className="flex-1">{result.name}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      Category
+                    </Badge>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-                      {results.some((r) => r.type === "resource") && (
-                        <>
-                          <div className="border-t border-slate-200 my-2" />
-                          <div className="flex flex-col gap-1">
-                            <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                              Resources
-                            </div>
-                            {results
-                              .filter((r) => r.type === "resource")
-                              .map((result) => (
-                                <div
-                                  key={result.id}
-                                  className="flex w-full hover:bg-slate-100 px-2 py-1 rounded-lg"
-                                >
-                                  <a
-                                    href={result.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-between w-full"
-                                  >
-                                    <span>{result.title}</span>
-                                    <Badge variant="outline">Resource</Badge>
-                                  </a>
-                                </div>
-                              ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </CommandList>
-          )}
-        </Command>
-      </motion.div>
-    </div>
+            {tags.length > 0 && (
+              <>
+                {categories.length > 0 && <CommandSeparator />}
+                <CommandGroup heading="Tags">
+                  {tags.map((result) => (
+                    <CommandItem
+                      key={result.id}
+                      value={`${result.name}-${result.id}`}
+                      keywords={[result.name || ""]}
+                      onSelect={() => handleSelect(result)}
+                      className="cursor-pointer"
+                    >
+                      <Tag className="mr-2 h-4 w-4 text-purple-600" />
+                      <span className="flex-1">{result.name}</span>
+                      <Badge className={cn("text-xs", result.color)}>
+                        {result.name}
+                      </Badge>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
+
+            {resources.length > 0 && (
+              <>
+                {(categories.length > 0 || tags.length > 0) && (
+                  <CommandSeparator />
+                )}
+                <CommandGroup heading="Resources">
+                  {resources.map((result) => (
+                    <CommandItem
+                      key={result.id}
+                      value={`${result.title}-${result.id}`}
+                      keywords={[result.title || ""]}
+                      onSelect={() => handleSelect(result)}
+                      className="cursor-pointer"
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4 text-blue-600" />
+                      <span className="flex-1">{result.title}</span>
+                      <Badge variant="outline" className="text-xs">
+                        Resource
+                      </Badge>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
+          </>
+        )}
+      </CommandList>
+    </CommandDialog>
   );
 }

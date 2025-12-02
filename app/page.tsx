@@ -199,7 +199,7 @@ export default function Home() {
       <div className="">
         <div
           id="hero"
-          className="relative border-b-2 border-black bg-yellow-300 overflow-hidden"
+          className="relative border-b-2 border-black bg-yellow-300 overflow-visible"
         >
           <div className="absolute top-10 left-10 w-16 h-16 bg-pink-400 border-2 border-black shadow-neo rounded-full opacity-100 hidden md:block animate-bounce delay-700"></div>
           <div className="absolute bottom-10 right-10 w-24 h-24 bg-blue-400 border-2 border-black shadow-neo rotate-12 opacity-100 hidden md:block animate-pulse"></div>
